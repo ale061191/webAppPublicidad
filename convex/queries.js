@@ -1,4 +1,10 @@
 import { query } from "./_generated/server";
+export const getClients = query({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("clients").collect();
+    },
+});
 export const getTotems = query({
     args: {},
     handler: async (ctx) => {

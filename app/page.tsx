@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft, Users } from 'lucide-react';
 import { View } from '../types';
 import { useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
+  { id: 'clients' as View, label: 'Clientes', href: '/clients' },
   { id: 'totems' as View, label: 'Tótems', href: '/totems' },
   { id: 'media' as View, label: 'Multimedia', href: '/media' },
   { id: 'settings' as View, label: 'Ajustes', href: '/settings' },
@@ -20,9 +21,9 @@ function Sidebar() {
   
   return (
     <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
-      <div className="px-8 mb-12">
-        <h1 className="text-xl font-bold tracking-tighter text-primary font-headline uppercase">KINETIC CMS</h1>
-        <p className="font-label text-[10px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
+      <div className="px-6 mb-12">
+        <h1 className="text-lg font-bold tracking-tight text-primary font-headline leading-tight">VOLTAJE ADS MANAGER</h1>
+        <p className="font-label text-[9px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
       </div>
       
       <nav className="flex-1 px-4 space-y-2">
@@ -39,6 +40,7 @@ function Sidebar() {
               }`}
             >
               {item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
+              {item.id === 'clients' && <Users className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
               {item.id === 'settings' && <Settings className="mr-4 w-5 h-5" />}
@@ -176,11 +178,11 @@ export default function Home() {
   ];
 
   const getTitle = () => {
-    if (pathname === '/') return 'TERMINAL KINÉTICA';
+    if (pathname === '/') return 'TERMINAL ADS MANAGER';
     if (pathname === '/totems') return 'GESTIÓN DE UNIDADES';
     if (pathname === '/media') return 'BIBLIOTECA MULTIMEDIA';
     if (pathname === '/settings') return 'CONFIGURACIÓN GLOBAL';
-    return 'TERMINAL KINÉTICA';
+    return 'TERMINAL ADS MANAGER';
   };
 
   if (!isLoggedIn) {
@@ -197,7 +199,7 @@ export default function Home() {
           <section className="flex justify-between items-end">
             <div>
               <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
-              <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Terminal <span className="font-extrabold text-primary">Alfa-01</span></h2>
+              <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Terminal <span className="font-extrabold text-primary">ADS MANAGER</span></h2>
             </div>
             <div className="flex items-center space-x-2 font-label text-[10px] text-on-surface-variant">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#75ff9e]"></span>

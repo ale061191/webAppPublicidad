@@ -1,4 +1,4 @@
-export type View = 'login' | 'dashboard' | 'totems' | 'playlist' | 'media' | 'settings' | 'player';
+export type View = 'login' | 'dashboard' | 'clients' | 'totems' | 'playlist' | 'media' | 'settings' | 'player';
 
 export interface Totem {
   id: string;

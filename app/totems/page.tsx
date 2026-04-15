@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Filter, RefreshCw, Building2, ShoppingBag, Store, Radio, MoreVertical, AlertTriangle, CheckCircle, X, Power, Trash2, Edit, Eye } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Filter, RefreshCw, Building2, ShoppingBag, Store, Radio, MoreVertical, AlertTriangle, CheckCircle, X, Power, Trash2, Edit, Eye, Users } from 'lucide-react';
 import { View } from '../../types';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
+  { id: 'clients' as View, label: 'Clientes', href: '/clients' },
   { id: 'totems' as View, label: 'Tótems', href: '/totems' },
   { id: 'media' as View, label: 'Multimedia', href: '/media' },
   { id: 'settings' as View, label: 'Ajustes', href: '/settings' },
@@ -19,10 +20,10 @@ function Sidebar() {
   const pathname = usePathname();
   
   return (
-    <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
-      <div className="px-8 mb-12">
-        <h1 className="text-xl font-bold tracking-tighter text-primary font-headline uppercase">KINETIC CMS</h1>
-        <p className="font-label text-[10px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
+<aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
+      <div className="px-6 mb-12">
+        <h1 className="text-lg font-bold tracking-tight text-primary font-headline leading-tight">VOLTAJE ADS MANAGER</h1>
+        <p className="font-label text-[9px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
       </div>
       
       <nav className="flex-1 px-4 space-y-2">
@@ -38,7 +39,8 @@ function Sidebar() {
                   : 'text-on-surface/60 font-medium hover:bg-white/5 hover:text-primary'
               }`}
             >
-              {item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
+{item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
+              {item.id === 'clients' && <Users className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
               {item.id === 'settings' && <Settings className="mr-4 w-5 h-5" />}
@@ -71,10 +73,80 @@ function Sidebar() {
   );
 }
 
-function TotemsList() {
+function TotemForm({ onClose, totem }: { onClose: () => void; totem?: any }) {
+  const createTotem = useMutation(api.mutations.createTotem);
+  const updateTotem = useMutation(api.mutations.updateTotem);
+  const [form, setForm] = useState({
+    name: totem?.name || '',
+    serial: totem?.serial || '',
+    location: totem?.location || '',
+    status: totem?.status || 'offline' as 'online' | 'offline' | 'maintenance',
+    lastSync: totem?.lastSync || new Date().toLocaleString(),
+    latency: totem?.latency || '0ms',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (totem?._id) {
+      await updateTotem({ id: totem._id, ...form });
+    } else {
+      await createTotem(form);
+    }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="glass-panel p-8 rounded-xl w-full max-w-lg">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="font-headline text-xl font-bold">{totem ? 'Editar Tótem' : 'Nuevo Tótem'}</h2>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-primary">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Nombre</label>
+            <input type="text" required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="Tótem 01" />
+          </div>
+          
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Número de Serie</label>
+            <input type="text" required value={form.serial} onChange={(e) => setForm({...form, serial: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="SN-2024-001" />
+          </div>
+          
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Ubicación</label>
+            <input type="text" required value={form.location} onChange={(e) => setForm({...form, location: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="Plaza Central,墨西哥" />
+          </div>
+          
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Estado</label>
+            <select value={form.status} onChange={(e) => setForm({...form, status: e.target.value as any})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none">
+              <option value="online">En Línea</option>
+              <option value="offline">Desconectado</option>
+              <option value="maintenance">Mantenimiento</option>
+            </select>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 py-2 border border-outline-variant text-on-surface-variant hover:bg-surface-container-high">Cancelar</button>
+            <button type="submit" className="flex-1 py-2 bg-primary text-on-primary font-bold">{totem ? 'Actualizar' : 'Crear'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: () => void }) {
   const totems = useQuery(api.queries.getTotems) || [];
   const deleteTotem = useMutation(api.mutations.deleteTotem);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     if (confirm('¿Eliminar este tótem?')) {
@@ -93,13 +165,9 @@ function TotemsList() {
           <h2 className="text-4xl font-headline font-bold text-on-surface tracking-tight">Red de Tótems</h2>
         </div>
         <div className="flex gap-3">
-          <button className="px-6 py-2.5 glass-panel border border-outline-variant/20 font-label text-[10px] uppercase tracking-widest text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            Filtros
-          </button>
-          <button className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]">
-            <RefreshCw className="w-4 h-4" />
-            Sincronizar
+          <button onClick={onNew}
+            className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]">
+            <Plus className="w-4 h-4" /> Nuevo Tótem
           </button>
         </div>
       </div>
@@ -214,11 +282,8 @@ function TotemsList() {
                   </div>
                 </div>
               </div>
-              <div className="col-span-1 flex justify-end gap-2">
-                <button className="p-2 hover:bg-surface-container-highest transition-colors text-on-surface-variant hover:text-primary">
-                  <Eye className="w-5 h-5" />
-                </button>
-                <button className="p-2 hover:bg-surface-container-highest transition-colors text-on-surface-variant hover:text-primary">
+<div className="col-span-1 flex justify-end gap-2">
+                <button onClick={() => onEdit?.(totem)} className="p-2 hover:bg-surface-container-highest transition-colors text-on-surface-variant hover:text-primary">
                   <Edit className="w-5 h-5" />
                 </button>
                 <button onClick={() => handleDelete(totem._id)} className="p-2 hover:bg-surface-container-highest transition-colors text-error">
@@ -234,12 +299,21 @@ function TotemsList() {
 }
 
 export default function Totems() {
+  const [showForm, setShowForm] = useState(false);
+  const [editingTotem, setEditingTotem] = useState<any>(null);
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingTotem(null);
+  };
+
   return (
     <div className="min-h-screen bg-background text-on-surface">
       <Sidebar />
       <div className="ml-64 pt-16">
-        <TotemsList />
+        <TotemsList onEdit={(totem) => { setEditingTotem(totem); setShowForm(true); }} onNew={() => setShowForm(true)} />
       </div>
+      {showForm && <TotemForm onClose={handleCloseForm} totem={editingTotem} />}
     </div>
   );
 }

@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Filter, UploadCloud, CheckCircle, Send, Tag, Delete, ChevronLeft, ChevronRight, VideoOff, CloudUpload } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Filter, UploadCloud, CheckCircle, Send, Tag, Delete, ChevronLeft, ChevronRight, VideoOff, CloudUpload, Users, X, Play, Pause, Trash2, Edit } from 'lucide-react';
 import { View } from '@/types';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
+  { id: 'clients' as View, label: 'Clientes', href: '/clients' },
   { id: 'totems' as View, label: 'Tótems', href: '/totems' },
   { id: 'media' as View, label: 'Multimedia', href: '/media' },
   { id: 'settings' as View, label: 'Ajustes', href: '/settings' },
@@ -19,7 +22,7 @@ function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
       <div className="px-8 mb-12">
-        <h1 className="text-xl font-bold tracking-tighter text-primary font-headline uppercase">KINETIC CMS</h1>
+        <h1 className="text-xl font-bold tracking-tighter text-primary font-headline uppercase">VOLTAJE ADS MANAGER</h1>
         <p className="font-label text-[10px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
       </div>
       
@@ -37,6 +40,7 @@ function Sidebar() {
               }`}
             >
               {item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
+              {item.id === 'clients' && <Users className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
               {item.id === 'settings' && <Settings className="mr-4 w-5 h-5" />}
@@ -69,17 +73,119 @@ function Sidebar() {
   );
 }
 
-function MediaPage() {
-  const mediaItems = [
-    { id: '1', name: 'NEON_DRIFT_01.MP4', size: '3.4 MB', res: '1080x1920', dur: '15S', quality: 'HD', img: 'https://picsum.photos/seed/m1/200/350', active: true },
-    { id: '2', name: 'CORE_METRIC_SYS.MP4', size: '12.8 MB', res: '2160x3840', dur: '30S', quality: '4K', img: 'https://picsum.photos/seed/m2/200/350' },
-    { id: '3', name: 'GLITCH_LOOP_A.MP4', size: '1.2 MB', res: '1080x1920', dur: '05S', quality: 'HD', img: 'https://picsum.photos/seed/m3/200/350' },
-    { id: '4', name: 'VOID_AMBIENT_60.MP4', size: '24.5 MB', res: '1080x1920', dur: '60S', quality: 'HD', img: 'https://picsum.photos/seed/m4/200/350' },
-    { id: '5', name: 'GLOBAL_NETWORK_04.MP4', size: '8.1 MB', res: '2160x3840', dur: '15S', quality: '4K', img: 'https://picsum.photos/seed/m5/200/350' },
-    { id: '6', name: 'TERMINAL_FEED_X.MP4', size: '2.9 MB', res: '1080x1920', dur: '10S', quality: 'HD', img: 'https://picsum.photos/seed/m6/200/350' },
-    { id: '7', name: 'BINARY_CASCADE.MP4', size: '4.5 MB', res: '1080x1920', dur: '15S', quality: 'HD', img: 'https://picsum.photos/seed/m7/200/350' },
-    { id: '8', name: 'BUFFER_CORRUPTO_02.MOV', size: 'Recuperación Pendiente', res: '', dur: '30S', quality: '', corrupted: true },
-  ];
+function MediaForm({ onClose, media }: { onClose: () => void; media?: any }) {
+  const createMedia = useMutation(api.mutations.createMedia);
+  const updateMedia = useMutation(api.mutations.updateMedia);
+  const [form, setForm] = useState({
+    name: media?.name || '',
+    type: media?.type || 'video' as 'video' | 'image',
+    format: media?.format || 'mp4',
+    size: media?.size || '0 MB',
+    duration: media?.duration || '30S',
+    resolution: media?.resolution || '1920x1080',
+    thumbnailUrl: media?.thumbnailUrl || '',
+    tags: media?.tags || [] as string[],
+    isActive: media?.isActive || false,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (media?._id) {
+      await updateMedia({ id: media._id, ...form });
+    } else {
+      await createMedia({ ...form, url: '', clientId: undefined });
+    }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="glass-panel p-8 rounded-xl w-full max-w-lg">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="font-headline text-xl font-bold">{media ? 'Editar' : 'Subir'} Multimedia</h2>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-primary">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Nombre</label>
+            <input type="text" required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="Mi Video" />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Tipo</label>
+              <select value={form.type} onChange={(e) => setForm({...form, type: e.target.value as any})}
+                className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none">
+                <option value="video">Video</option>
+                <option value="image">Imagen</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Duración</label>
+              <select value={form.duration} onChange={(e) => setForm({...form, duration: e.target.value})}
+                className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none">
+                <option value="5S">5 segundos</option>
+                <option value="15S">15 segundos</option>
+                <option value="30S">30 segundos</option>
+                <option value="60S">60 segundos</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Resolución</label>
+              <select value={form.resolution} onChange={(e) => setForm({...form, resolution: e.target.value})}
+                className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none">
+                <option value="1920x1080">1080p (1920x1080)</option>
+                <option value="2160x3840">4K (2160x3840)</option>
+                <option value="1080x1920">Vertical (1080x1920)</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Tamaño</label>
+              <input type="text" value={form.size} onChange={(e) => setForm({...form, size: e.target.value})}
+                className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="10 MB" />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 py-2 border border-outline-variant text-on-surface-variant hover:bg-surface-container-high">Cancelar</button>
+            <button type="submit" className="flex-1 py-2 bg-primary text-on-primary font-bold">{media ? 'Actualizar' : 'Subir'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: () => void }) {
+  const media = useQuery(api.queries.getMedia) || [];
+  const deleteMedia = useMutation(api.mutations.deleteMedia);
+  const toggleMediaActive = useMutation(api.mutations.toggleMediaActive);
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (confirm('¿Eliminar este contenido?')) {
+      await deleteMedia({ id: id as any });
+    }
+  };
+
+  const handleToggleActive = async (id: string) => {
+    await toggleMediaActive({ id: id as any });
+  };
+
+  const handleEdit = (item: any) => {
+    onEdit?.(item);
+  };
+
+  const filteredMedia = selectedFilter 
+    ? media.filter((m: any) => m.duration === selectedFilter)
+    : media;
 
   return (
     <div className="space-y-10">
@@ -87,26 +193,25 @@ function MediaPage() {
         <div className="max-w-xl">
           <h2 className="text-4xl font-headline font-light tracking-tight text-on-surface mb-2 italic">REPOSITORIO <span className="text-primary font-bold not-italic">.LIBR</span></h2>
           <div className="flex gap-4 font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/60">
-            <span>ENTIDADES_INDEXADAS: 342</span>
-            <span>CARGA_ALMACENAMIENTO: 72%</span>
-            <span>ÚLTIMA_SINCRONIZACIÓN: 04:22:00</span>
+            <span>ENTIDADES_INDEXADAS: {media.length}</span>
+            <span>ACTIVOS: {media.filter((m: any) => m.isActive).length}</span>
           </div>
         </div>
         <div className="flex gap-3">
-          <button className="px-6 py-2 border border-outline-variant/30 hover:bg-surface-container-high transition-all text-on-surface font-label text-[10px] uppercase tracking-widest flex items-center gap-2">
+          <button onClick={() => setSelectedFilter(selectedFilter ? null : '30S')} className={`px-6 py-2 border hover:bg-surface-container-high transition-all text-on-surface font-label text-[10px] uppercase tracking-widest flex items-center gap-2 ${selectedFilter ? 'border-primary text-primary' : 'border-outline-variant/30'}`}>
             <Filter className="w-4 h-4" />
-            Filtros Avanzados
+            Filtros {selectedFilter && `(${selectedFilter})`}
           </button>
-          <button className="px-6 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all font-label text-[10px] uppercase tracking-widest flex items-center gap-2">
+          <button onClick={onNew} className="px-6 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all font-label text-[10px] uppercase tracking-widest flex items-center gap-2">
             <UploadCloud className="w-4 h-4" />
-            Ingesta Masiva
+            Subir Archivo
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-8">
         <aside className="col-span-3 space-y-8">
-          <div className="p-6 border border-dashed border-primary/30 glass-panel flex flex-col items-center justify-center text-center group hover:border-primary/60 transition-colors cursor-pointer aspect-square rounded-xl">
+          <div onClick={onNew} className="p-6 border border-dashed border-primary/30 glass-panel flex flex-col items-center justify-center text-center group hover:border-primary/60 transition-colors cursor-pointer aspect-square rounded-xl">
             <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-all">
               <CloudUpload className="text-primary w-6 h-6" />
             </div>
@@ -118,20 +223,14 @@ function MediaPage() {
             <div>
               <h4 className="font-label text-[11px] uppercase tracking-[0.3em] text-primary mb-4">Rango de Duración</h4>
               <div className="grid grid-cols-2 gap-2">
-                <button className="px-3 py-2 bg-surface-container-low text-[10px] font-label text-on-surface-variant hover:bg-surface-container-high text-left">SNIPPET 5S</button>
-                <button className="px-3 py-2 bg-surface-container-low text-[10px] font-label text-on-surface-variant hover:bg-surface-container-high text-left">TEASER 15S</button>
-                <button className="px-3 py-2 bg-primary/20 text-primary border border-primary/30 text-[10px] font-label text-left">ESTÁNDAR 30S</button>
-                <button className="px-3 py-2 bg-surface-container-low text-[10px] font-label text-on-surface-variant hover:bg-surface-container-high text-left">EXTENDIDO 60S</button>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-label text-[11px] uppercase tracking-[0.3em] text-primary mb-4">Matriz de Formato</h4>
-              <div className="flex flex-col gap-1">
-                {['Vertical 9:16 (Activo)', 'Horizontal 16:9', 'Cuadrado 1:1'].map((f, i) => (
-                  <label key={i} className="flex items-center gap-3 px-3 py-2 bg-surface-container-low/50 cursor-pointer hover:bg-surface-container-low transition-colors">
-                    <input type="checkbox" className="rounded-none bg-background border-outline-variant text-primary focus:ring-0" />
-                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">{f}</span>
-                  </label>
+                {['5S', '15S', '30S', '60S'].map((dur) => (
+                  <button 
+                    key={dur}
+                    onClick={() => setSelectedFilter(selectedFilter === dur ? null : dur)}
+                    className={`px-3 py-2 text-[10px] font-label text-left transition-colors ${selectedFilter === dur ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}`}
+                  >
+                    {dur}
+                  </button>
                 ))}
               </div>
             </div>
@@ -143,46 +242,37 @@ function MediaPage() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <CheckCircle className="text-primary w-4 h-4" fill="currentColor" />
-                <span className="font-label text-[10px] uppercase tracking-widest font-bold">12 Seleccionados</span>
-              </div>
-              <div className="h-4 w-px bg-outline-variant/30"></div>
-              <div className="flex gap-4">
-                <button className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1">
-                  <Send className="w-3 h-3" /> Asignar a Tótems
-                </button>
-                <button className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1">
-                  <Tag className="w-3 h-3" /> Añadir Etiquetas
-                </button>
-                <button className="font-label text-[10px] uppercase tracking-widest text-error hover:text-error/80 transition-colors flex items-center gap-1">
-                  <Delete className="w-3 h-3" /> Eliminar
-                </button>
+                <span className="font-label text-[10px] uppercase tracking-widest font-bold">{filteredMedia.length} Elementos</span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {mediaItems.map((item) => (
-              <div key={item.id} className="group relative aspect-[9/16] glass-card overflow-hidden rounded-xl">
-                {item.corrupted ? (
-                  <div className="w-full h-full flex items-center justify-center p-6">
-                    <div className="text-center">
-                      <VideoOff className="text-primary/20 w-12 h-12 mb-4 mx-auto" />
-                      <p className="font-label text-[8px] uppercase tracking-[0.2em] text-on-surface-variant/40">Miniatura No Disponible</p>
-                    </div>
-                  </div>
+            {filteredMedia.length === 0 ? (
+              <div className="col-span-4 glass-card p-12 text-center">
+                <Images className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />
+                <p className="text-on-surface-variant">No hay contenido multimedia</p>
+                <p className="text-[10px] text-on-surface-variant/60 mt-2">Sube archivos para comenzar</p>
+              </div>
+            ) : filteredMedia.map((item: any) => (
+              <div key={item._id} className="group relative aspect-[9/16] glass-card overflow-hidden rounded-xl">
+                {item.thumbnailUrl ? (
+                  <img src={item.thumbnailUrl} alt={item.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-100 group-hover:scale-110" referrerPolicy="no-referrer" />
                 ) : (
-                  <img src={item.img} alt={item.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-100 group-hover:scale-110" referrerPolicy="no-referrer" />
+                  <div className="w-full h-full flex items-center justify-center bg-surface-container-low">
+                    <VideoOff className="text-primary/20 w-12 h-12" />
+                  </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60"></div>
                 <div className="absolute top-3 left-3 flex gap-1">
-                  {item.quality && <span className="bg-primary px-1.5 py-0.5 text-[8px] font-label font-bold text-on-primary uppercase tracking-tighter">{item.quality}</span>}
-                  <span className="bg-surface-container-highest/80 backdrop-blur px-1.5 py-0.5 text-[8px] font-label text-on-surface uppercase tracking-tighter">{item.dur}</span>
+                  {item.type && <span className="bg-primary px-1.5 py-0.5 text-[8px] font-label font-bold text-on-primary uppercase tracking-tighter">{item.type}</span>}
+                  <span className="bg-surface-container-highest/80 backdrop-blur px-1.5 py-0.5 text-[8px] font-label text-on-surface uppercase tracking-tighter">{item.duration || 'N/A'}</span>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform">
                   <p className="font-label text-[10px] uppercase tracking-widest text-primary mb-1 truncate">{item.name}</p>
-                  <p className="font-body text-[8px] text-on-surface-variant/60">{item.size} {item.res && `| ${item.res}`}</p>
+                  <p className="font-body text-[8px] text-on-surface-variant/60">{item.size} {item.resolution && `| ${item.resolution}`}</p>
                 </div>
-                {item.active && (
+                {item.isActive && (
                   <div className="absolute bottom-4 right-4">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -190,13 +280,24 @@ function MediaPage() {
                     </span>
                   </div>
                 )}
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <button onClick={() => handleToggleActive(item._id)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
+                    {item.isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </button>
+                  <button onClick={() => handleEdit(item)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(item._id)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-error/20">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
 
           <div className="mt-12 flex justify-between items-center border-t border-outline-variant/10 pt-8">
             <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">
-              MOSTRANDO <span className="text-on-surface">1-24</span> DE <span className="text-on-surface">342</span> ACTIVOS
+              MOSTRANDO <span className="text-on-surface">1-{Math.min(filteredMedia.length, 24)}</span> DE <span className="text-on-surface">{filteredMedia.length}</span> ACTIVOS
             </div>
             <div className="flex gap-2">
               <button className="w-10 h-10 flex items-center justify-center bg-surface-container-low text-on-surface-variant hover:text-primary transition-all"><ChevronLeft className="w-4 h-4" /></button>
@@ -212,12 +313,21 @@ function MediaPage() {
 }
 
 export default function Media() {
+  const [showForm, setShowForm] = useState(false);
+  const [editingMedia, setEditingMedia] = useState<any>(null);
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingMedia(null);
+  };
+
   return (
     <div className="min-h-screen bg-background text-on-surface">
       <Sidebar />
-      <div className="ml-64 pt-16">
-        <MediaPage />
+      <div className="ml-64 pt-16 px-8">
+        <MediaPage onEdit={(item) => { setEditingMedia(item); setShowForm(true); }} onNew={() => setShowForm(true)} />
       </div>
+      {showForm && <MediaForm onClose={handleCloseForm} media={editingMedia} />}
     </div>
   );
 }

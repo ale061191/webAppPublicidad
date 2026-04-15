@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings as SettingsIcon, Plus, Code2, Database, UserPlus, Edit, Delete } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { LayoutDashboard, Monitor, Images, Settings as SettingsIcon, Plus, Code2, Database, UserPlus, Edit, Delete, Users as UsersIcon } from 'lucide-react';
 import { View } from '@/types';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
+  { id: 'clients' as View, label: 'Clientes', href: '/clients' },
   { id: 'totems' as View, label: 'Tótems', href: '/totems' },
   { id: 'media' as View, label: 'Multimedia', href: '/media' },
   { id: 'settings' as View, label: 'Ajustes', href: '/settings' },
@@ -17,10 +20,10 @@ function Sidebar() {
   const pathname = usePathname();
   
   return (
-    <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
-      <div className="px-8 mb-12">
-        <h1 className="text-xl font-bold tracking-tighter text-primary font-headline uppercase">KINETIC CMS</h1>
-        <p className="font-label text-[10px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
+<aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
+      <div className="px-6 mb-12">
+        <h1 className="text-lg font-bold tracking-tight text-primary font-headline leading-tight">VOLTAJE ADS MANAGER</h1>
+        <p className="font-label text-[9px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
       </div>
       
       <nav className="flex-1 px-4 space-y-2">
@@ -36,7 +39,8 @@ function Sidebar() {
                   : 'text-on-surface/60 font-medium hover:bg-white/5 hover:text-primary'
               }`}
             >
-              {item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
+{item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
+              {item.id === 'clients' && <UsersIcon className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
               {item.id === 'settings' && <SettingsIcon className="mr-4 w-5 h-5" />}
@@ -70,10 +74,13 @@ function Sidebar() {
 }
 
 function SettingsPage() {
-  const users = [
-    { name: 'Carlos M. Valdivia', role: 'Superusuario', email: 'c.valdivia@voltajeplus.com', img: 'https://picsum.photos/seed/u1/100/100' },
-    { name: 'Elena Rossi', role: 'Editor Senior', email: 'e.rossi@voltajeplus.com', img: 'https://picsum.photos/seed/u2/100/100' },
-  ];
+  const users = useQuery(api.queries.getUsers) || [];
+  
+  const [notifications, setNotifications] = useState({
+    serverAlerts: true,
+    userRegistration: false,
+    debugMode: true,
+  });
 
   return (
     <div className="space-y-12">
@@ -93,33 +100,33 @@ function SettingsPage() {
               <h3 className="font-headline text-lg font-bold mb-4">Ajustes de API</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="font-label text-[10px] text-neutral-500 uppercase block mb-1">Voltaje Endpoint</label>
+                  <label className="font-label text-[10px] text-on-surface-variant uppercase block mb-1">Voltaje Endpoint</label>
                   <input 
                     type="text" 
                     readOnly 
-                    value="https://api.voltajeplus.io/v1"
+                    value="https://hidden-jellyfish-402.convex.cloud"
                     className="w-full bg-surface-container-highest border-none text-xs font-label py-2 text-primary focus:ring-0"
                   />
                   <div className="h-px w-full bg-outline-variant/30 mt-1"></div>
                 </div>
-                <button className="w-full py-2 bg-neutral-800 text-neutral-400 font-label text-[10px] uppercase tracking-wider hover:bg-neutral-700 transition-colors">Renovar API Key</button>
+                <button className="w-full py-2 bg-surface-container-high text-on-surface-variant font-label text-[10px] uppercase tracking-wider hover:bg-primary hover:text-on-primary transition-colors">Renovar API Key</button>
               </div>
             </section>
 
             <section className="p-8 bg-surface-container-low border-b-2 border-transparent hover:border-primary/20 transition-all duration-300">
               <div className="flex justify-between items-start mb-6">
                 <Database className="text-primary w-8 h-8" />
-                <span className="font-label text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">Supabase</span>
+                <span className="font-label text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">Convex</span>
               </div>
               <h3 className="font-headline text-lg font-bold mb-4">Bases de Datos</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-surface-container-lowest">
                   <span className="font-label text-xs">Convex DB</span>
-                  <span className="text-[10px] text-neutral-500 font-label">Desconectado</span>
+                  <span className="text-[10px] text-primary font-label">Activo</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-surface-container-lowest">
-                  <span className="font-label text-xs">Supabase Instance</span>
-                  <span className="text-[10px] text-primary font-label">Activo</span>
+                  <span className="font-label text-xs">Tablas Activas</span>
+                  <span className="text-[10px] text-on-surface-variant font-label">5</span>
                 </div>
               </div>
             </section>
@@ -129,7 +136,7 @@ function SettingsPage() {
             <div className="flex justify-between items-end mb-6 px-7">
               <div>
                 <h3 className="font-headline text-2xl font-bold">Gestión de Usuarios</h3>
-                <p className="font-body text-sm text-neutral-500 max-w-md mt-1">Controla los niveles de acceso y permisos para los operadores del terminal.</p>
+                <p className="font-body text-sm text-on-surface-variant max-w-md mt-1">Controla los niveles de acceso y permisos para los operadores del terminal.</p>
               </div>
               <button className="kinetic-gradient px-6 py-2 text-on-primary font-label font-bold text-xs flex items-center gap-2 rounded-lg">
                 <UserPlus className="w-4 h-4" />
@@ -137,20 +144,27 @@ function SettingsPage() {
               </button>
             </div>
             <div className="space-y-2">
-              {users.map((user, i) => (
-                <div key={i} className="grid grid-cols-12 gap-4 px-8 py-4 bg-surface-container-low hover:bg-surface-container-high transition-colors group cursor-pointer">
+              {users.length === 0 ? (
+                <div className="px-7 py-8 text-center">
+                  <UsersIcon className="w-8 h-8 mx-auto text-on-surface-variant/30 mb-2" />
+                  <p className="text-on-surface-variant text-sm">No hay usuarios registrados</p>
+                </div>
+              ) : users.map((user: any) => (
+                <div key={user._id} className="grid grid-cols-12 gap-4 px-8 py-4 bg-surface-container-low hover:bg-surface-container-high transition-colors group cursor-pointer">
                   <div className="col-span-1 flex items-center">
-                    <img src={user.img} alt={user.name} className="w-10 h-10 rounded-sm object-cover" referrerPolicy="no-referrer" />
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                      {user.name?.charAt(0) || 'U'}
+                    </div>
                   </div>
                   <div className="col-span-4 flex flex-col justify-center">
-                    <span className="font-headline text-sm font-semibold">{user.name}</span>
-                    <span className="font-label text-[10px] text-neutral-500 uppercase">{user.role}</span>
+                    <span className="font-headline text-sm font-semibold">{user.name || 'Usuario'}</span>
+                    <span className="font-label text-[10px] text-on-surface-variant uppercase">{user.role || 'Operador'}</span>
                   </div>
                   <div className="col-span-4 flex items-center">
-                    <span className="font-label text-xs text-neutral-400">{user.email}</span>
+                    <span className="font-label text-xs text-on-surface-variant">{user.email || 'N/A'}</span>
                   </div>
                   <div className="col-span-3 flex items-center justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Edit className="w-4 h-4 text-neutral-500 hover:text-primary" />
+                    <Edit className="w-4 h-4 text-on-surface-variant hover:text-primary" />
                     <Delete className="w-4 h-4 text-error" />
                   </div>
                 </div>
@@ -173,11 +187,11 @@ function SettingsPage() {
             </div>
             <div className="space-y-6">
               <div>
-                <label className="font-label text-[10px] text-neutral-500 uppercase block mb-2">Display Name</label>
+                <label className="font-label text-[10px] text-on-surface-variant uppercase block mb-2">Display Name</label>
                 <input type="text" defaultValue="System Architect" className="w-full bg-transparent border-b border-outline-variant/30 text-sm font-body py-2 focus:border-primary focus:ring-0 transition-colors outline-none" />
               </div>
               <div>
-                <label className="font-label text-[10px] text-neutral-500 uppercase block mb-2">Email corporativo</label>
+                <label className="font-label text-[10px] text-on-surface-variant uppercase block mb-2">Email corporativo</label>
                 <input type="email" defaultValue="root@voltajeplus.io" className="w-full bg-transparent border-b border-outline-variant/30 text-sm font-body py-2 focus:border-primary focus:ring-0 transition-colors outline-none" />
               </div>
               <button className="w-full border border-primary/20 py-3 text-primary font-label text-[10px] tracking-widest hover:bg-primary hover:text-on-primary transition-all">ACTUALIZAR PERFIL</button>
@@ -187,33 +201,54 @@ function SettingsPage() {
           <section className="p-8 bg-surface-container-low">
             <h3 className="font-headline text-sm font-bold uppercase tracking-widest mb-6">Notificaciones</h3>
             <div className="space-y-6">
-              {[
-                { label: 'Alertas de Servidor', desc: 'Errores críticos de DB', active: true },
-                { label: 'Registro de Usuarios', desc: 'Nuevas altas en terminal', active: false },
-                { label: 'Modo Depuración', desc: 'Logs detallados en consola', active: true },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="font-label text-sm">{item.label}</span>
-                    <span className="text-[10px] text-neutral-500 font-body">{item.desc}</span>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${item.active ? 'bg-primary' : 'bg-neutral-800'}`}>
-                    <div className={`w-3 h-3 bg-black rounded-full absolute transition-all ${item.active ? 'right-1' : 'left-1'}`}></div>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="font-label text-sm">Alertas de Servidor</span>
+                  <span className="text-[10px] text-on-surface-variant font-body">Errores críticos de DB</span>
                 </div>
-              ))}
+                <button 
+                  onClick={() => setNotifications({...notifications, serverAlerts: !notifications.serverAlerts})}
+                  className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${notifications.serverAlerts ? 'bg-primary' : 'bg-surface-container-high'}`}
+                >
+                  <div className={`w-3 h-3 bg-on-primary rounded-full absolute transition-all ${notifications.serverAlerts ? 'right-1' : 'left-1'}`}></div>
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="font-label text-sm">Registro de Usuarios</span>
+                  <span className="text-[10px] text-on-surface-variant font-body">Nuevas altas en terminal</span>
+                </div>
+                <button 
+                  onClick={() => setNotifications({...notifications, userRegistration: !notifications.userRegistration})}
+                  className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${notifications.userRegistration ? 'bg-primary' : 'bg-surface-container-high'}`}
+                >
+                  <div className={`w-3 h-3 bg-on-primary rounded-full absolute transition-all ${notifications.userRegistration ? 'right-1' : 'left-1'}`}></div>
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="font-label text-sm">Modo Depuración</span>
+                  <span className="text-[10px] text-on-surface-variant font-body">Logs detallados en consola</span>
+                </div>
+                <button 
+                  onClick={() => setNotifications({...notifications, debugMode: !notifications.debugMode})}
+                  className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${notifications.debugMode ? 'bg-primary' : 'bg-surface-container-high'}`}
+                >
+                  <div className={`w-3 h-3 bg-on-primary rounded-full absolute transition-all ${notifications.debugMode ? 'right-1' : 'left-1'}`}></div>
+                </button>
+              </div>
             </div>
           </section>
         </div>
       </div>
 
-      <footer className="mt-16 border-t border-error/10 pt-8 flex justify-between items-center">
+      <footer className="mt-16 border-t border-outline-variant/10 pt-8 flex justify-between items-center">
         <div>
           <h4 className="text-error font-headline text-lg font-bold">Zona de Peligro</h4>
-          <p className="font-body text-xs text-neutral-500">Acciones irreversibles sobre la infraestructura del terminal.</p>
+          <p className="font-body text-xs text-on-surface-variant">Acciones irreversibles sobre la infraestructura del terminal.</p>
         </div>
         <div className="flex gap-4">
-          <button className="px-6 py-3 border border-neutral-800 text-neutral-500 font-label text-[10px] hover:text-on-surface transition-colors">PURGAR CACHÉ</button>
+          <button className="px-6 py-3 border border-outline-variant text-on-surface-variant font-label text-[10px] hover:text-on-surface hover:border-on-surface transition-colors">PURGAR CACHÉ</button>
           <button className="px-6 py-3 border border-error/30 text-error font-label text-[10px] hover:bg-error hover:text-on-primary transition-all">RESETEAR SISTEMA</button>
         </div>
       </footer>

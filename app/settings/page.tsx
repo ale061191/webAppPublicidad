@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings as SettingsIcon, Plus, Code2, Database, UserPlus, Edit, Delete, Users as UsersIcon } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings as SettingsIcon, Plus, Code2, Database, UserPlus, Edit, Delete, Users as UsersIcon, X, Eye, EyeOff } from 'lucide-react';
 import { View } from '@/types';
 import { useDB, useUser } from '@/lib/hooks';
 
@@ -85,6 +85,84 @@ function Sidebar() {
   );
 }
 
+function UserForm({ onClose, user, onSave }: { onClose: () => void; user?: any; onSave: (id: number, data: any) => void }) {
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    password: '',
+    role: user?.role || 'Operador',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Only include password if it was typed (for edits) or if it's a new user
+    const dataToSave = { ...form };
+    if (user?.id && !dataToSave.password) {
+      delete (dataToSave as any).password;
+    }
+
+    if (user?.id) {
+      await onSave(user.id, dataToSave);
+    } else {
+      onSave(0, dataToSave);
+    }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="glass-panel p-8 rounded-xl w-full max-w-lg bg-surface">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="font-headline text-xl font-bold">{user ? 'Editar Operador' : 'Nuevo Operador'}</h2>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-primary">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Nombre</label>
+            <input type="text" required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none text-on-surface" placeholder="Nombre del operador" />
+          </div>
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Email</label>
+            <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none text-on-surface" placeholder="email@voltaje.plus" />
+          </div>
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Contraseña {user ? '(Dejar en blanco para mantener actual)' : ''}</label>
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} required={!user} value={form.password} onChange={(e) => setForm({...form, password: e.target.value})}
+                className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none text-on-surface pr-10" placeholder="••••••••" />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Rol</label>
+            <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none text-on-surface">
+              <option value="Operador">Operador</option>
+              <option value="Administrador">Administrador</option>
+            </select>
+          </div>
+          <button type="submit" className="w-full py-3 bg-primary text-on-primary font-bold font-label text-[10px] uppercase tracking-widest rounded-lg hover:brightness-110 transition-all mt-6">
+            Guardar Operador
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function SettingsPage() {
   const usersDB = useDB('users');
   const users = usersDB.data;
@@ -99,6 +177,24 @@ function SettingsPage() {
     email: 'admin@voltaje.plus',
   });
   const [saving, setSaving] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+
+  const handleSaveUser = async (id: number, data: any) => {
+    if (id) {
+      await usersDB.update(id, data);
+    } else {
+      await usersDB.create(data);
+    }
+    setIsUserModalOpen(false);
+    setEditingUser(null);
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    if (confirm('¿Estás seguro de que deseas eliminar este operador?')) {
+      await usersDB.remove(id);
+    }
+  };
 
   useEffect(() => {
     const savedProfile = localStorage.getItem('voltaje_profile');
@@ -175,7 +271,10 @@ function SettingsPage() {
                 <h3 className="font-headline text-2xl font-bold">Gestión de Usuarios</h3>
                 <p className="font-body text-sm text-on-surface-variant max-w-md mt-1">Controla los niveles de acceso y permisos para los operadores del terminal.</p>
               </div>
-              <button className="kinetic-gradient px-6 py-2 text-on-primary font-label font-bold text-xs flex items-center gap-2 rounded-lg">
+              <button 
+                onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }}
+                className="kinetic-gradient px-6 py-2 text-on-primary font-label font-bold text-xs flex items-center gap-2 rounded-lg"
+              >
                 <UserPlus className="w-4 h-4" />
                 NUEVO OPERADOR
               </button>
@@ -187,7 +286,7 @@ function SettingsPage() {
                   <p className="text-on-surface-variant text-sm">No hay usuarios registrados</p>
                 </div>
               ) : users.map((user: any) => (
-                <div key={user._id} className="grid grid-cols-12 gap-4 px-8 py-4 bg-surface-container-low hover:bg-surface-container-high transition-colors group cursor-pointer">
+                <div key={user.id} className="grid grid-cols-12 gap-4 px-8 py-4 bg-surface-container-low hover:bg-surface-container-high transition-colors group cursor-pointer">
                   <div className="col-span-1 flex items-center">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
                       {user.name?.charAt(0) || 'U'}
@@ -201,12 +300,26 @@ function SettingsPage() {
                     <span className="font-label text-xs text-on-surface-variant">{user.email || 'N/A'}</span>
                   </div>
                   <div className="col-span-3 flex items-center justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Edit className="w-4 h-4 text-on-surface-variant hover:text-primary" />
-                    <Delete className="w-4 h-4 text-error" />
+                    <button onClick={(e) => { e.stopPropagation(); setEditingUser(user); setIsUserModalOpen(true); }} className="text-on-surface-variant hover:text-primary">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteUser(user.id); }} className="text-error">
+                      <Delete className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
+            {isUserModalOpen && (
+              <UserForm
+                user={editingUser}
+                onClose={() => {
+                  setIsUserModalOpen(false);
+                  setEditingUser(null);
+                }}
+                onSave={handleSaveUser}
+              />
+            )}
           </section>
         </div>
 

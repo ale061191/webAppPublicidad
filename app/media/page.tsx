@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import { LayoutDashboard, Monitor, Images, Settings, Plus, Filter, UploadCloud, CheckCircle, Send, Tag, Delete, ChevronLeft, ChevronRight, VideoOff, CloudUpload, Users, X, Play, Pause, Trash2, Edit } from 'lucide-react';
 import { View } from '@/types';
+import { useDB } from '@/lib/hooks';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -18,6 +17,22 @@ const navItems = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const [profile, setProfile] = useState({ displayName: 'Admin Root', email: 'admin@voltaje.plus' });
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('voltaje_profile');
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+    const handleProfileUpdate = () => {
+      const updated = localStorage.getItem('voltaje_profile');
+      if (updated) setProfile(JSON.parse(updated));
+    };
+    window.addEventListener('profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('profile-updated', handleProfileUpdate);
+  }, []);
+
+  const getInitials = (name: string) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'A';
   
   return (
     <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
@@ -57,15 +72,12 @@ function Sidebar() {
         </button>
         
         <div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
-          <img 
-            src="https://picsum.photos/seed/admin/100/100" 
-            alt="Admin" 
-            className="w-10 h-10 rounded-full grayscale hover:grayscale-0 transition-all"
-            referrerPolicy="no-referrer"
-          />
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+            {getInitials(profile.displayName)}
+          </div>
           <div className="ml-3 overflow-hidden">
-            <p className="text-xs font-bold truncate">Admin_Raíz</p>
-            <p className="text-[10px] text-on-surface-variant font-mono">ID: 8829-XP</p>
+            <p className="text-xs font-bold truncate">{profile.displayName}</p>
+            <p className="text-[10px] text-on-surface-variant font-mono">{profile.email}</p>
           </div>
         </div>
       </div>
@@ -73,27 +85,25 @@ function Sidebar() {
   );
 }
 
-function MediaForm({ onClose, media }: { onClose: () => void; media?: any }) {
-  const createMedia = useMutation(api.mutations.createMedia);
-  const updateMedia = useMutation(api.mutations.updateMedia);
+function MediaForm({ onClose, media, onSave }: { onClose: () => void; media?: any; onSave: (id: number, data: any) => void }) {
   const [form, setForm] = useState({
     name: media?.name || '',
-    type: media?.type || 'video' as 'video' | 'image',
+    type: media?.type || 'video',
     format: media?.format || 'mp4',
     size: media?.size || '0 MB',
     duration: media?.duration || '30S',
     resolution: media?.resolution || '1920x1080',
-    thumbnailUrl: media?.thumbnailUrl || '',
-    tags: media?.tags || [] as string[],
-    isActive: media?.isActive || false,
+    thumbnail_url: media?.thumbnail_url || '',
+    tags: media?.tags || [],
+    is_active: media?.is_active || false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (media?._id) {
-      await updateMedia({ id: media._id, ...form });
+    if (media?.id) {
+      await onSave(media.id, form);
     } else {
-      await createMedia({ ...form, url: '', clientId: undefined });
+      onSave(0, { ...form, url: '', client_id: null });
     }
     onClose();
   };
@@ -164,19 +174,18 @@ function MediaForm({ onClose, media }: { onClose: () => void; media?: any }) {
 }
 
 function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: () => void }) {
-  const media = useQuery(api.queries.getMedia) || [];
-  const deleteMedia = useMutation(api.mutations.deleteMedia);
-  const toggleMediaActive = useMutation(api.mutations.toggleMediaActive);
+  const mediaDB = useDB('media');
+  const media = mediaDB.data;
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (confirm('¿Eliminar este contenido?')) {
-      await deleteMedia({ id: id as any });
+      await mediaDB.remove(id);
     }
   };
 
-  const handleToggleActive = async (id: string) => {
-    await toggleMediaActive({ id: id as any });
+  const handleToggleActive = async (id: number, isActive: boolean) => {
+    await mediaDB.update(id, { is_active: !isActive });
   };
 
   const handleEdit = (item: any) => {
@@ -191,8 +200,9 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
     <div className="space-y-10">
       <div className="flex justify-between items-end">
         <div className="max-w-xl">
-          <h2 className="text-4xl font-headline font-light tracking-tight text-on-surface mb-2 italic">REPOSITORIO <span className="text-primary font-bold not-italic">.LIBR</span></h2>
-          <div className="flex gap-4 font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/60">
+          <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
+          <h2 className="font-headline text-4xl font-light tracking-tight text-on-surface">Repositorio <span className="font-extrabold text-primary">Multimedia</span></h2>
+          <div className="flex gap-4 font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/60 mt-2">
             <span>ENTIDADES_INDEXADAS: {media.length}</span>
             <span>ACTIVOS: {media.filter((m: any) => m.isActive).length}</span>
           </div>
@@ -255,7 +265,7 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                 <p className="text-[10px] text-on-surface-variant/60 mt-2">Sube archivos para comenzar</p>
               </div>
             ) : filteredMedia.map((item: any) => (
-              <div key={item._id} className="group relative aspect-[9/16] glass-card overflow-hidden rounded-xl">
+              <div key={item.id} className="group relative aspect-[9/16] glass-card overflow-hidden rounded-xl">
                 {item.thumbnailUrl ? (
                   <img src={item.thumbnailUrl} alt={item.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-100 group-hover:scale-110" referrerPolicy="no-referrer" />
                 ) : (
@@ -281,13 +291,13 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                   </div>
                 )}
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  <button onClick={() => handleToggleActive(item._id)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
-                    {item.isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  <button onClick={() => handleToggleActive(item.id, item.is_active)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
+                    {item.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
                   <button onClick={() => handleEdit(item)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
                     <Edit className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(item._id)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-error/20">
+                  <button onClick={() => handleDelete(item.id)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-error/20">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -315,6 +325,15 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
 export default function Media() {
   const [showForm, setShowForm] = useState(false);
   const [editingMedia, setEditingMedia] = useState<any>(null);
+  const mediaDB = useDB('media');
+
+const handleSave = async (id: number, data: any) => {
+    if (id) {
+      await mediaDB.update(id, data);
+    } else {
+      await mediaDB.create({...data, url: '', client_id: null});
+    }
+  };
 
   const handleCloseForm = () => {
     setShowForm(false);
@@ -327,7 +346,7 @@ export default function Media() {
       <div className="ml-64 pt-16 px-8">
         <MediaPage onEdit={(item) => { setEditingMedia(item); setShowForm(true); }} onNew={() => setShowForm(true)} />
       </div>
-      {showForm && <MediaForm onClose={handleCloseForm} media={editingMedia} />}
+      {showForm && <MediaForm onClose={handleCloseForm} media={editingMedia} onSave={handleSave} />}
     </div>
   );
 }

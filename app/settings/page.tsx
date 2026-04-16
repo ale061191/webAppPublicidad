@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import { LayoutDashboard, Monitor, Images, Settings as SettingsIcon, Plus, Code2, Database, UserPlus, Edit, Delete, Users as UsersIcon } from 'lucide-react';
 import { View } from '@/types';
+import { useDB, useUser } from '@/lib/hooks';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -18,9 +17,25 @@ const navItems = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const [profile, setProfile] = useState({ displayName: 'Admin Root', email: 'admin@voltaje.plus' });
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('voltaje_profile');
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+    const handleProfileUpdate = () => {
+      const updated = localStorage.getItem('voltaje_profile');
+      if (updated) setProfile(JSON.parse(updated));
+    };
+    window.addEventListener('profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('profile-updated', handleProfileUpdate);
+  }, []);
+
+  const getInitials = (name: string) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'A';
   
   return (
-<aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
+    <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
       <div className="px-6 mb-12">
         <h1 className="text-lg font-bold tracking-tight text-primary font-headline leading-tight">VOLTAJE ADS MANAGER</h1>
         <p className="font-label text-[9px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
@@ -39,7 +54,7 @@ function Sidebar() {
                   : 'text-on-surface/60 font-medium hover:bg-white/5 hover:text-primary'
               }`}
             >
-{item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
+              {item.id === 'dashboard' && <LayoutDashboard className="mr-4 w-5 h-5" />}
               {item.id === 'clients' && <UsersIcon className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
@@ -57,15 +72,12 @@ function Sidebar() {
         </button>
         
         <div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
-          <img 
-            src="https://picsum.photos/seed/admin/100/100" 
-            alt="Admin" 
-            className="w-10 h-10 rounded-full grayscale hover:grayscale-0 transition-all"
-            referrerPolicy="no-referrer"
-          />
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+            {getInitials(profile.displayName)}
+          </div>
           <div className="ml-3 overflow-hidden">
-            <p className="text-xs font-bold truncate">Admin_Raíz</p>
-            <p className="text-[10px] text-on-surface-variant font-mono">ID: 8829-XP</p>
+            <p className="text-xs font-bold truncate">{profile.displayName}</p>
+            <p className="text-[10px] text-on-surface-variant font-mono">{profile.email}</p>
           </div>
         </div>
       </div>
@@ -74,19 +86,44 @@ function Sidebar() {
 }
 
 function SettingsPage() {
-  const users = useQuery(api.queries.getUsers) || [];
-  
+  const usersDB = useDB('users');
+  const users = usersDB.data;
+  const { user, updateUser } = useUser();
   const [notifications, setNotifications] = useState({
     serverAlerts: true,
     userRegistration: false,
     debugMode: true,
   });
+  const [profile, setProfile] = useState({
+    displayName: 'Admin Root',
+    email: 'admin@voltaje.plus',
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('voltaje_profile');
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+  }, []);
+
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+    setSaving(true);
+    await updateUser({ name: profile.displayName, email: profile.email });
+    setSaving(false);
+    alert('Perfil actualizado correctamente');
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
     <div className="space-y-12">
       <header>
-        <span className="font-label text-[10px] uppercase tracking-[0.3em] text-primary mb-2 block">Control Maestro</span>
-        <h1 className="text-5xl font-headline font-light tracking-tight text-on-surface">Ajustes <span className="font-bold text-primary">Globales</span></h1>
+        <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
+        <h1 className="font-headline text-4xl font-light text-on-surface tracking-tight">Ajustes <span className="font-extrabold text-primary">Globales</span></h1>
       </header>
 
       <div className="grid grid-cols-12 gap-8">
@@ -104,7 +141,7 @@ function SettingsPage() {
                   <input 
                     type="text" 
                     readOnly 
-                    value="https://hidden-jellyfish-402.convex.cloud"
+                    value={process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rkedmrqvqzgetubjvrwy.supabase.co'}
                     className="w-full bg-surface-container-highest border-none text-xs font-label py-2 text-primary focus:ring-0"
                   />
                   <div className="h-px w-full bg-outline-variant/30 mt-1"></div>
@@ -116,12 +153,12 @@ function SettingsPage() {
             <section className="p-8 bg-surface-container-low border-b-2 border-transparent hover:border-primary/20 transition-all duration-300">
               <div className="flex justify-between items-start mb-6">
                 <Database className="text-primary w-8 h-8" />
-                <span className="font-label text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">Convex</span>
+                <span className="font-label text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">Supabase</span>
               </div>
               <h3 className="font-headline text-lg font-bold mb-4">Bases de Datos</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-surface-container-lowest">
-                  <span className="font-label text-xs">Convex DB</span>
+                  <span className="font-label text-xs">Supabase DB</span>
                   <span className="text-[10px] text-primary font-label">Activo</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-surface-container-lowest">
@@ -177,24 +214,40 @@ function SettingsPage() {
           <section className="glass-panel p-8 border border-outline-variant/10 relative overflow-hidden">
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
             <div className="flex items-center gap-6 mb-8 relative z-10">
-              <div className="w-20 h-20 border-2 border-primary p-1">
-                <img src="https://picsum.photos/seed/admin/200/200" alt="Admin" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="w-20 h-20 border-2 border-primary flex items-center justify-center bg-primary/10">
+                <span className="text-3xl font-bold text-primary">{getInitials(profile.displayName)}</span>
               </div>
               <div>
-                <h3 className="font-headline text-xl font-bold">Admin Root</h3>
+                <h3 className="font-headline text-xl font-bold">{profile.displayName}</h3>
                 <p className="font-label text-[10px] text-primary">TERMINAL LEVEL 1</p>
               </div>
             </div>
             <div className="space-y-6">
               <div>
                 <label className="font-label text-[10px] text-on-surface-variant uppercase block mb-2">Display Name</label>
-                <input type="text" defaultValue="System Architect" className="w-full bg-transparent border-b border-outline-variant/30 text-sm font-body py-2 focus:border-primary focus:ring-0 transition-colors outline-none" />
+                <input 
+                  type="text" 
+                  value={profile.displayName} 
+                  onChange={(e) => setProfile({...profile, displayName: e.target.value})}
+                  className="w-full bg-transparent border-b border-outline-variant/30 text-sm font-body py-2 focus:border-primary focus:ring-0 transition-colors outline-none" 
+                />
               </div>
               <div>
                 <label className="font-label text-[10px] text-on-surface-variant uppercase block mb-2">Email corporativo</label>
-                <input type="email" defaultValue="root@voltajeplus.io" className="w-full bg-transparent border-b border-outline-variant/30 text-sm font-body py-2 focus:border-primary focus:ring-0 transition-colors outline-none" />
+                <input 
+                  type="email" 
+                  value={profile.email} 
+                  onChange={(e) => setProfile({...profile, email: e.target.value})}
+                  className="w-full bg-transparent border-b border-outline-variant/30 text-sm font-body py-2 focus:border-primary focus:ring-0 transition-colors outline-none" 
+                />
               </div>
-              <button className="w-full border border-primary/20 py-3 text-primary font-label text-[10px] tracking-widest hover:bg-primary hover:text-on-primary transition-all">ACTUALIZAR PERFIL</button>
+              <button 
+                onClick={handleUpdateProfile}
+                disabled={saving}
+                className="w-full border border-primary/20 py-3 text-primary font-label text-[10px] tracking-widest hover:bg-primary hover:text-on-primary transition-all disabled:opacity-50"
+              >
+                {saving ? 'ACTUALIZANDO...' : 'ACTUALIZAR PERFIL'}
+              </button>
             </div>
           </section>
 
@@ -208,9 +261,9 @@ function SettingsPage() {
                 </div>
                 <button 
                   onClick={() => setNotifications({...notifications, serverAlerts: !notifications.serverAlerts})}
-                  className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${notifications.serverAlerts ? 'bg-primary' : 'bg-surface-container-high'}`}
+                  className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${notifications.serverAlerts ? 'bg-primary' : 'bg-surface-container-high'}`}
                 >
-                  <div className={`w-3 h-3 bg-on-primary rounded-full absolute transition-all ${notifications.serverAlerts ? 'right-1' : 'left-1'}`}></div>
+                  <div className={`w-4 h-4 bg-on-primary rounded-full absolute top-0.5 left-0.5 transition-all ${notifications.serverAlerts ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </button>
               </div>
               <div className="flex items-center justify-between">
@@ -220,9 +273,9 @@ function SettingsPage() {
                 </div>
                 <button 
                   onClick={() => setNotifications({...notifications, userRegistration: !notifications.userRegistration})}
-                  className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${notifications.userRegistration ? 'bg-primary' : 'bg-surface-container-high'}`}
+                  className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${notifications.userRegistration ? 'bg-primary' : 'bg-surface-container-high'}`}
                 >
-                  <div className={`w-3 h-3 bg-on-primary rounded-full absolute transition-all ${notifications.userRegistration ? 'right-1' : 'left-1'}`}></div>
+                  <div className={`w-4 h-4 bg-on-primary rounded-full absolute top-0.5 left-0.5 transition-all ${notifications.userRegistration ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </button>
               </div>
               <div className="flex items-center justify-between">
@@ -232,9 +285,9 @@ function SettingsPage() {
                 </div>
                 <button 
                   onClick={() => setNotifications({...notifications, debugMode: !notifications.debugMode})}
-                  className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${notifications.debugMode ? 'bg-primary' : 'bg-surface-container-high'}`}
+                  className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${notifications.debugMode ? 'bg-primary' : 'bg-surface-container-high'}`}
                 >
-                  <div className={`w-3 h-3 bg-on-primary rounded-full absolute transition-all ${notifications.debugMode ? 'right-1' : 'left-1'}`}></div>
+                  <div className={`w-4 h-4 bg-on-primary rounded-full absolute top-0.5 left-0.5 transition-all ${notifications.debugMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </button>
               </div>
             </div>
@@ -260,7 +313,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background text-on-surface">
       <Sidebar />
-      <div className="ml-64 pt-16">
+      <div className="ml-64 pt-16 px-8">
         <SettingsPage />
       </div>
     </div>

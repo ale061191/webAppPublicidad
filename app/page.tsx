@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft, Users } from 'lucide-react';
 import { View } from '../types';
-import { useQuery } from 'convex/react';
-import { api } from '../convex/_generated/api';
+import { useDB } from '../lib/hooks';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -18,6 +17,22 @@ const navItems = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const [profile, setProfile] = useState({ displayName: 'Admin Root', email: 'admin@voltaje.plus' });
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('voltaje_profile');
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+    const handleProfileUpdate = () => {
+      const updated = localStorage.getItem('voltaje_profile');
+      if (updated) setProfile(JSON.parse(updated));
+    };
+    window.addEventListener('profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('profile-updated', handleProfileUpdate);
+  }, []);
+
+  const getInitials = (name: string) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'A';
   
   return (
     <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
@@ -57,15 +72,12 @@ function Sidebar() {
         </button>
         
         <div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
-          <img 
-            src="https://picsum.photos/seed/admin/100/100" 
-            alt="Admin" 
-            className="w-10 h-10 rounded-full grayscale hover:grayscale-0 transition-all"
-            referrerPolicy="no-referrer"
-          />
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+            {getInitials(profile.displayName)}
+          </div>
           <div className="ml-3 overflow-hidden">
-            <p className="text-xs font-bold truncate">Admin_Raíz</p>
-            <p className="text-[10px] text-on-surface-variant font-mono">ID: 8829-XP</p>
+            <p className="text-xs font-bold truncate">{profile.displayName}</p>
+            <p className="text-[10px] text-on-surface-variant font-mono">{profile.email}</p>
           </div>
         </div>
       </div>
@@ -163,9 +175,13 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const pathname = usePathname();
   
-  const totems = useQuery(api.queries.getTotems) || [];
-  const media = useQuery(api.queries.getMedia) || [];
-  const playlists = useQuery(api.queries.getPlaylists) || [];
+  const totemsData = useDB('totems');
+  const mediaData = useDB('media');
+  const playlistData = useDB('playlists');
+  
+  const totems = totemsData.data;
+  const media = mediaData.data;
+  const playlists = playlistData.data;
   
   const onlineTotems = totems.filter((t: any) => t.status === 'online').length;
   const activeMedia = media.filter((m: any) => m.isActive).length;

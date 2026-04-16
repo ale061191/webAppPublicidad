@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, Eye, X } from 'lucide-react';
 import { View } from '../../types';
+import { useDB } from '../../lib/hooks';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -63,12 +62,10 @@ function Sidebar() {
   );
 }
 
-function ClientForm({ onClose, client }: { onClose: () => void; client?: any }) {
-  const createClient = useMutation(api.mutations.createClient);
-  const updateClient = useMutation(api.mutations.updateClient);
+function ClientForm({ onClose, client, onSave }: { onClose: () => void; client?: any; onSave: (id: number, data: any) => void }) {
   const [form, setForm] = useState({
     name: client?.name || '',
-    businessName: client?.businessName || '',
+    business_name: client?.business_name || '',
     email: client?.email || '',
     phone: client?.phone || '',
     address: client?.address || '',
@@ -76,10 +73,10 @@ function ClientForm({ onClose, client }: { onClose: () => void; client?: any }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (client?._id) {
-      await updateClient({ id: client._id, ...form });
+    if (client?.id) {
+      await onSave(client.id, form);
     } else {
-      await createClient(form);
+      onSave(0, form);
     }
     onClose();
   };
@@ -103,7 +100,7 @@ function ClientForm({ onClose, client }: { onClose: () => void; client?: any }) 
           
           <div>
             <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Nombre de Empresa</label>
-            <input type="text" required value={form.businessName} onChange={(e) => setForm({...form, businessName: e.target.value})}
+            <input type="text" required value={form.business_name} onChange={(e) => setForm({...form, business_name: e.target.value})}
               className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="Empresa XYZ" />
           </div>
           
@@ -136,14 +133,22 @@ function ClientForm({ onClose, client }: { onClose: () => void; client?: any }) 
 }
 
 function ClientsList() {
-  const clients = useQuery(api.queries.getClients) || [];
-  const deleteClient = useMutation(api.mutations.deleteClient);
+  const clientsDB = useDB('clients');
+  const clients = clientsDB.data;
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
 
-  const handleDelete = async (id: string) => {
+  const handleSave = async (id: number, data: any) => {
+    if (id) {
+      await clientsDB.update(id, data);
+    } else {
+      await clientsDB.create({ ...data, is_active: true });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
     if (confirm('¿Eliminar este cliente?')) {
-      await deleteClient({ id: id as any });
+      await clientsDB.remove(id);
     }
   };
 
@@ -161,11 +166,8 @@ function ClientsList() {
     <div className="space-y-8">
       <div className="flex justify-between items-end">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="h-[2px] w-8 bg-primary"></span>
-            <span className="font-label text-[10px] uppercase tracking-[0.3em] text-primary">Gestión</span>
-          </div>
-          <h2 className="text-4xl font-headline font-bold text-on-surface tracking-tight">Clientes</h2>
+          <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
+          <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Gestión <span className="font-extrabold text-primary">Clientes</span></h2>
         </div>
         <button onClick={() => setShowForm(true)}
           className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]">
@@ -181,18 +183,18 @@ function ClientsList() {
             <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega un cliente para comenzar</p>
           </div>
         ) : clients.map((client: any) => (
-          <div key={client._id} className="glass-card p-6 rounded-xl hover:bg-surface-container-low/40 transition-all">
+          <div key={client.id} className="glass-card p-6 rounded-xl hover:bg-surface-container-low/40 transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-primary" />
               </div>
               <div className="flex gap-1">
                 <button onClick={() => handleEdit(client)} className="p-2 hover:bg-surface-container-highest text-on-surface-variant hover:text-primary"><Edit className="w-4 h-4" /></button>
-                <button onClick={() => handleDelete(client._id)} className="p-2 hover:bg-surface-container-highest text-error"><Trash2 className="w-4 h-4" /></button>
+                <button onClick={() => handleDelete(client.id)} className="p-2 hover:bg-surface-container-highest text-error"><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>
             
-            <h3 className="font-headline font-bold text-lg mb-1">{client.businessName}</h3>
+            <h3 className="font-headline font-bold text-lg mb-1">{client.business_name}</h3>
             <p className="font-label text-xs text-on-surface-variant mb-4">{client.name}</p>
             
             <div className="space-y-2 text-xs">
@@ -202,15 +204,15 @@ function ClientsList() {
             </div>
             
             <div className="mt-4 pt-4 border-t border-outline-variant/20 flex justify-between items-center">
-              <span className={`text-[10px] px-2 py-1 rounded ${client.isActive ? 'bg-primary/20 text-primary' : 'bg-error/20 text-error'}`}>
-                {client.isActive ? 'Activo' : 'Inactivo'}
+              <span className={`text-[10px] px-2 py-1 rounded ${client.is_active ? 'bg-primary/20 text-primary' : 'bg-error/20 text-error'}`}>
+                {client.is_active ? 'Activo' : 'Inactivo'}
               </span>
             </div>
           </div>
         ))}
       </div>
 
-      {showForm && <ClientForm onClose={handleCloseForm} client={editingClient} />}
+      {showForm && <ClientForm onClose={handleCloseForm} client={editingClient} onSave={handleSave} />}
     </div>
   );
 }

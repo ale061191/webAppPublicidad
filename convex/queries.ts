@@ -51,3 +51,19 @@ export const getOnlineTotems = query({
     return allTotems.filter((t: any) => t.status === "online");
   },
 });
+
+export const getUserByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+    return users.find((u: any) => u.email === args.email);
+  },
+});
+
+export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    return users[0];
+  },
+});

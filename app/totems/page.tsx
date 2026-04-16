@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Filter, RefreshCw, Building2, ShoppingBag, Store, Radio, MoreVertical, AlertTriangle, CheckCircle, X, Power, Trash2, Edit, Eye, Users } from 'lucide-react';
 import { View } from '../../types';
+import { useDB } from '../../lib/hooks';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -18,6 +17,22 @@ const navItems = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const [profile, setProfile] = useState({ displayName: 'Admin Root', email: 'admin@voltaje.plus' });
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('voltaje_profile');
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+    const handleProfileUpdate = () => {
+      const updated = localStorage.getItem('voltaje_profile');
+      if (updated) setProfile(JSON.parse(updated));
+    };
+    window.addEventListener('profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('profile-updated', handleProfileUpdate);
+  }, []);
+
+  const getInitials = (name: string) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'A';
   
   return (
 <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
@@ -56,16 +71,13 @@ function Sidebar() {
           Desplegar Nuevo Tótem
         </button>
         
-        <div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
-          <img 
-            src="https://picsum.photos/seed/admin/100/100" 
-            alt="Admin" 
-            className="w-10 h-10 rounded-full grayscale hover:grayscale-0 transition-all"
-            referrerPolicy="no-referrer"
-          />
+<div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+            {getInitials(profile.displayName)}
+          </div>
           <div className="ml-3 overflow-hidden">
-            <p className="text-xs font-bold truncate">Admin_Raíz</p>
-            <p className="text-[10px] text-on-surface-variant font-mono">ID: 8829-XP</p>
+            <p className="text-xs font-bold truncate">{profile.displayName}</p>
+            <p className="text-[10px] text-on-surface-variant font-mono">{profile.email}</p>
           </div>
         </div>
       </div>
@@ -73,24 +85,22 @@ function Sidebar() {
   );
 }
 
-function TotemForm({ onClose, totem }: { onClose: () => void; totem?: any }) {
-  const createTotem = useMutation(api.mutations.createTotem);
-  const updateTotem = useMutation(api.mutations.updateTotem);
+function TotemForm({ onClose, totem, onSave }: { onClose: () => void; totem?: any; onSave: (id: number, data: any) => void }) {
   const [form, setForm] = useState({
     name: totem?.name || '',
     serial: totem?.serial || '',
     location: totem?.location || '',
-    status: totem?.status || 'offline' as 'online' | 'offline' | 'maintenance',
-    lastSync: totem?.lastSync || new Date().toLocaleString(),
+    status: totem?.status || 'offline',
+    last_sync: totem?.last_sync || new Date().toLocaleString(),
     latency: totem?.latency || '0ms',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (totem?._id) {
-      await updateTotem({ id: totem._id, ...form });
+    if (totem?.id) {
+      await onSave(totem.id, form);
     } else {
-      await createTotem(form);
+      onSave(0, form);
     }
     onClose();
   };
@@ -145,12 +155,20 @@ function TotemForm({ onClose, totem }: { onClose: () => void; totem?: any }) {
 }
 
 function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: () => void }) {
-  const totems = useQuery(api.queries.getTotems) || [];
-  const deleteTotem = useMutation(api.mutations.deleteTotem);
+  const totemsDB = useDB('totems');
+  const totems = totemsDB.data;
 
-  const handleDelete = async (id: string) => {
+  const handleSave = async (id: number, data: any) => {
+    if (id) {
+      await totemsDB.update(id, data);
+    } else {
+      await totemsDB.create(data);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
     if (confirm('¿Eliminar este tótem?')) {
-      await deleteTotem({ id: id as any });
+      await totemsDB.remove(id);
     }
   };
 
@@ -158,11 +176,8 @@ function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: 
     <div className="space-y-8">
       <div className="flex justify-between items-end">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="h-[2px] w-8 bg-primary"></span>
-            <span className="font-label text-[10px] uppercase tracking-[0.3em] text-primary">Sistema de Gestión de Unidades</span>
-          </div>
-          <h2 className="text-4xl font-headline font-bold text-on-surface tracking-tight">Red de Tótems</h2>
+          <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
+          <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Red de <span className="font-extrabold text-primary">Tótems</span></h2>
         </div>
         <div className="flex gap-3">
           <button onClick={onNew}
@@ -235,7 +250,7 @@ function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: 
               <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega un nuevo tótem para comenzar</p>
             </div>
           ) : totems.map((totem: any) => (
-            <div key={totem._id} className={`grid grid-cols-12 items-center glass-card hover:bg-surface-container-low/40 transition-all px-6 py-6 border border-outline-variant/5 gap-4 ${totem.status === 'offline' ? 'bg-error/5 border-error/10' : ''}`}>
+            <div key={totem.id} className={`grid grid-cols-12 items-center glass-card hover:bg-surface-container-low/40 transition-all px-6 py-6 border border-outline-variant/5 gap-4 ${totem.status === 'offline' ? 'bg-error/5 border-error/10' : ''}`}>
               <div className="col-span-1">
                 <input type="checkbox" className="form-checkbox bg-transparent border-outline-variant text-primary focus:ring-0 rounded-none w-5 h-5" />
               </div>
@@ -286,7 +301,7 @@ function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: 
                 <button onClick={() => onEdit?.(totem)} className="p-2 hover:bg-surface-container-highest transition-colors text-on-surface-variant hover:text-primary">
                   <Edit className="w-5 h-5" />
                 </button>
-                <button onClick={() => handleDelete(totem._id)} className="p-2 hover:bg-surface-container-highest transition-colors text-error">
+                <button onClick={() => handleDelete(totem.id)} className="p-2 hover:bg-surface-container-highest transition-colors text-error">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>
@@ -301,6 +316,15 @@ function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: 
 export default function Totems() {
   const [showForm, setShowForm] = useState(false);
   const [editingTotem, setEditingTotem] = useState<any>(null);
+  const totemsDB = useDB('totems');
+
+  const handleSave = async (id: number, data: any) => {
+    if (id) {
+      await totemsDB.update(id, data);
+    } else {
+      await totemsDB.create(data);
+    }
+  };
 
   const handleCloseForm = () => {
     setShowForm(false);
@@ -310,10 +334,10 @@ export default function Totems() {
   return (
     <div className="min-h-screen bg-background text-on-surface">
       <Sidebar />
-      <div className="ml-64 pt-16">
+      <div className="ml-64 pt-16 px-8">
         <TotemsList onEdit={(totem) => { setEditingTotem(totem); setShowForm(true); }} onNew={() => setShowForm(true)} />
       </div>
-      {showForm && <TotemForm onClose={handleCloseForm} totem={editingTotem} />}
+      {showForm && <TotemForm onClose={handleCloseForm} totem={editingTotem} onSave={handleSave} />}
     </div>
   );
 }

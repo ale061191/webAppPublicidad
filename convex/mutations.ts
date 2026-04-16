@@ -193,3 +193,32 @@ export const deletePlaylist = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+// === USERS ===
+export const createUser = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    role: v.optional(v.union(v.literal("admin"), v.literal("editor"), v.literal("viewer"))),
+    image: v.optional(v.string()),
+    clientId: v.optional(v.id("clients")),
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("users", args);
+    return id;
+  },
+});
+
+export const updateUser = mutation({
+  args: {
+    id: v.id("users"),
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    role: v.optional(v.union(v.literal("admin"), v.literal("editor"), v.literal("viewer"))),
+    image: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args;
+    await ctx.db.patch(id, updates);
+  },
+});

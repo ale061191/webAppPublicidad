@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { ConvexClientProvider } from './ConvexClientProvider';
 
 export const metadata: Metadata = {
   title: 'Voltaje Plus - Sistema de Gestión',
@@ -15,9 +14,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <ConvexClientProvider>
-          {children}
-        </ConvexClientProvider>
+        {children}
       </body>
     </html>
   );

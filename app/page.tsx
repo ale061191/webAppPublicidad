@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft, Users } from 'lucide-react';
 import { View } from '../types';
 import { useDB } from '../lib/hooks';
+import { RevenueChart, TotemHeatmap } from '../components/RevenueCharts';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -178,8 +179,10 @@ export default function Home() {
   const totemsData = useDB('totems');
   const mediaData = useDB('media');
   const playlistData = useDB('playlists');
+  const clientsData = useDB('clients');
   
   const totems = totemsData.data;
+  const clients = clientsData.data;
   const media = mediaData.data;
   const playlists = playlistData.data;
   
@@ -243,6 +246,11 @@ export default function Home() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RevenueChart payments={[]} clients={clients} />
+            <TotemHeatmap totems={totems} clients={clients} />
           </div>
         </div>
       </main>

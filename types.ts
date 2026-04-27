@@ -22,3 +22,22 @@ export interface MediaItem {
   thumbnailUrl: string;
   tags: string[];
 }
+
+export interface Payment {
+  id: number;
+  clientId: number;
+  clientName: string;
+  amount: number;
+  date: string;
+  status: 'paid' | 'pending' | 'cancelled';
+}
+
+export interface Playlist {
+  id: number;
+  name: string;
+  description: string;
+  mediaIds: number[];
+  totemIds: number[];
+  isActive: boolean;
+  createdAt: string;
+}

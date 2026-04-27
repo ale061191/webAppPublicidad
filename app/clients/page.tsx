@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, Eye, X } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, X, FileVideo, FileImage } from 'lucide-react';
 import { View } from '../../types';
 import { useDB } from '../../lib/hooks';
 
@@ -48,16 +48,6 @@ function Sidebar() {
           );
         })}
       </nav>
-
-      <div className="px-6 mt-auto">
-        <div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">A</div>
-          <div className="ml-3 overflow-hidden">
-            <p className="text-xs font-bold truncate">Admin</p>
-            <p className="text-[10px] text-on-surface-variant font-mono">Administrador</p>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }
@@ -85,7 +75,7 @@ function ClientForm({ onClose, client, onSave }: { onClose: () => void; client?:
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="glass-panel p-8 rounded-xl w-full max-w-lg">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="font-headline text-xl font-bold">Nuevo Cliente</h2>
+          <h2 className="font-headline text-xl font-bold">{client ? 'Editar' : 'Nuevo'} Cliente</h2>
           <button onClick={onClose} className="text-on-surface-variant hover:text-primary">
             <X className="w-6 h-6" />
           </button>
@@ -132,11 +122,14 @@ function ClientForm({ onClose, client, onSave }: { onClose: () => void; client?:
   );
 }
 
-function ClientsList() {
-  const clientsDB = useDB('clients');
-  const clients = clientsDB.data;
+export default function Clients() {
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
+
+  const clientsDB = useDB('clients');
+  const mediaDB = useDB('media');
 
   const handleSave = async (id: number, data: any) => {
     if (id) {
@@ -152,78 +145,185 @@ function ClientsList() {
     }
   };
 
-  const handleEdit = (client: any) => {
-    setEditingClient(client);
-    setShowForm(true);
+  const handleSelectClient = (client: any) => {
+    setSelectedClient(client);
+    setShowMediaSelector(false);
   };
 
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingClient(null);
+  const handleCloseSidebar = () => {
+    setSelectedClient(null);
+    setShowMediaSelector(false);
   };
 
-  return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-end">
-        <div>
-          <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
-          <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Gestión <span className="font-extrabold text-primary">Clientes</span></h2>
-        </div>
-        <button onClick={() => setShowForm(true)}
-          className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]">
-          <Plus className="w-4 h-4" /> Nuevo Cliente
-        </button>
-      </div>
+  const handleAssignMedia = async (mediaId: number) => {
+    if (selectedClient) {
+      console.log('Assigning media', mediaId, 'to client', selectedClient.id);
+      await mediaDB.update(mediaId, { client_id: selectedClient.id });
+      setShowMediaSelector(false);
+      console.log('Media assigned successfully');
+    }
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {clients.length === 0 ? (
-          <div className="col-span-3 glass-card p-12 text-center">
-            <Users className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />
-            <p className="text-on-surface-variant">No hay clientes registrados</p>
-            <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega un cliente para comenzar</p>
-          </div>
-        ) : clients.map((client: any) => (
-          <div key={client.id} className="glass-card p-6 rounded-xl hover:bg-surface-container-low/40 transition-all">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => handleEdit(client)} className="p-2 hover:bg-surface-container-highest text-on-surface-variant hover:text-primary"><Edit className="w-4 h-4" /></button>
-                <button onClick={() => handleDelete(client.id)} className="p-2 hover:bg-surface-container-highest text-error"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            </div>
-            
-            <h3 className="font-headline font-bold text-lg mb-1">{client.business_name}</h3>
-            <p className="font-label text-xs text-on-surface-variant mb-4">{client.name}</p>
-            
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center gap-2 text-on-surface-variant"><Mail className="w-4 h-4" /><span>{client.email}</span></div>
-              {client.phone && <div className="flex items-center gap-2 text-on-surface-variant"><Phone className="w-4 h-4" /><span>{client.phone}</span></div>}
-              {client.address && <div className="flex items-center gap-2 text-on-surface-variant"><MapPin className="w-4 h-4" /><span>{client.address}</span></div>}
-            </div>
-            
-            <div className="mt-4 pt-4 border-t border-outline-variant/20 flex justify-between items-center">
-              <span className={`text-[10px] px-2 py-1 rounded ${client.is_active ? 'bg-primary/20 text-primary' : 'bg-error/20 text-error'}`}>
-                {client.is_active ? 'Activo' : 'Inactivo'}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+  const assignedMedia = useMemo(() => {
+    if (!selectedClient) return [];
+    return mediaDB.data.filter((m: any) => m.client_id === selectedClient.id);
+  }, [selectedClient, mediaDB.data]);
 
-      {showForm && <ClientForm onClose={handleCloseForm} client={editingClient} onSave={handleSave} />}
-    </div>
-  );
-}
+  const availableMedia = useMemo(() => {
+    if (!selectedClient) return [];
+    return mediaDB.data.filter((m: any) => !m.client_id || m.client_id === selectedClient.id);
+  }, [selectedClient, mediaDB.data]);
 
-export default function Clients() {
   return (
     <div className="min-h-screen bg-background text-on-surface">
       <Sidebar />
       <div className="ml-64 pt-16 px-8">
-        <ClientsList />
+        <div className="space-y-8">
+          <div className="flex justify-between items-end">
+            <div>
+              <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
+              <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Gestión <span className="font-extrabold text-primary">Clientes</span></h2>
+            </div>
+            <button onClick={() => setShowForm(true)}
+              className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]">
+              <Plus className="w-4 h-4" /> Nuevo Cliente
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {clientsDB.data.length === 0 ? (
+              <div className="col-span-3 glass-card p-12 text-center">
+                <Users className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />
+                <p className="text-on-surface-variant">No hay clientes registrados</p>
+                <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega un cliente para comenzar</p>
+              </div>
+            ) : clientsDB.data.map((client: any) => (
+              <div 
+                key={client.id} 
+                onClick={() => handleSelectClient(client)}
+                className="glass-card p-6 rounded-xl hover:bg-surface-container-low/40 transition-all cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Building2 className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={(e) => { e.stopPropagation(); setEditingClient(client); setShowForm(true); }} className="p-2 hover:bg-surface-container-highest text-on-surface-variant hover:text-primary"><Edit className="w-4 h-4" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(client.id); }} className="p-2 hover:bg-surface-container-highest text-error"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+                
+                <h3 className="font-headline font-bold text-lg mb-1">{client.business_name}</h3>
+                <p className="font-label text-xs text-on-surface-variant mb-4">{client.name}</p>
+                
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-on-surface-variant"><Mail className="w-4 h-4" /><span>{client.email}</span></div>
+                  {client.phone && <div className="flex items-center gap-2 text-on-surface-variant"><Phone className="w-4 h-4" /><span>{client.phone}</span></div>}
+                  {client.address && <div className="flex items-center gap-2 text-on-surface-variant"><MapPin className="w-4 h-4" /><span>{client.address}</span></div>}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-outline-variant/20 flex justify-between items-center">
+                  <span className={`text-[10px] px-2 py-1 rounded ${client.is_active ? 'bg-primary/20 text-primary' : 'bg-error/20 text-error'}`}>
+                    {client.is_active ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {showForm && <ClientForm onClose={() => { setShowForm(false); setEditingClient(null); }} client={editingClient} onSave={handleSave} />}
+      
+      {selectedClient && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={handleCloseSidebar} />
+          <div className="fixed right-0 top-0 h-full w-96 bg-surface-container-low border-l border-outline-variant/10 z-50 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-outline-variant/10">
+              <div>
+                <h3 className="font-bold">{selectedClient.business_name || selectedClient.name}</h3>
+                <p className="text-xs text-on-surface-variant">{selectedClient.email}</p>
+              </div>
+              <button onClick={handleCloseSidebar} className="p-2 hover:bg-surface-container-high rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="glass-card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Images className="w-4 h-4 text-primary" />
+                    Multimedia Asignada
+                  </h4>
+                  <button 
+                    onClick={() => setShowMediaSelector(true)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    + Agregar
+                  </button>
+                </div>
+                
+                {assignedMedia.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {assignedMedia.map((media: any) => (
+                      <div key={media.id} className="aspect-video bg-surface-container-low rounded flex items-center justify-center overflow-hidden">
+                        {media.type === 'video' ? (
+                          <div className="text-center p-2">
+                            <FileVideo className="w-6 h-6 text-primary mx-auto" />
+                            <span className="text-[8px] truncate block w-full">{media.name}</span>
+                          </div>
+                        ) : (
+                          <img src={media.url} alt={media.name} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-on-surface-variant">Sin multimedia asignada</p>
+                )}
+              </div>
+
+              <Link href="/player" className="block w-full py-3 bg-primary text-black text-center font-bold rounded-lg hover:brightness-110">
+                VER EN PANTALLA
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showMediaSelector && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-60">
+          <div className="glass-panel w-full max-w-md rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold">Agregar Multimedia</h3>
+              <button onClick={() => setShowMediaSelector(false)} className="p-2 hover:bg-surface-container-high rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {availableMedia.length === 0 ? (
+                <p className="text-sm text-on-surface-variant">No hay multimedia disponible</p>
+              ) : (
+                availableMedia.map((media: any) => (
+                  <button
+                    key={media.id}
+                    onClick={() => handleAssignMedia(media.id)}
+                    className="w-full p-3 bg-surface-container-low hover:bg-surface-container-high rounded text-left flex items-center gap-3"
+                  >
+                    {media.type === 'video' ? <FileVideo className="w-5 h-5 text-primary" /> : <FileImage className="w-5 h-5 text-primary" />}
+                    <div>
+                      <p className="text-sm font-medium">{media.name}</p>
+                      <p className="text-xs text-on-surface-variant">{media.size} • {media.duration}</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   BarChart, Bar, Cell 
 } from 'recharts';
 import { Calendar, TrendingUp, TrendingDown, DollarSign, Users, Filter } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 type FilterType = 'day' | 'week' | 'month';
 
@@ -32,57 +33,67 @@ function seededRandom(seed: number): number {
 
 export function RevenueChart({ payments = [], clients = [] }: RevenueChartProps) {
   const [filter, setFilter] = useState<FilterType>('month');
-  const [mounted, setMounted] = useState(false);
+  const [realPayments, setRealPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
+    async function fetchPayments() {
+      try {
+        const { data, error } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('status', 'paid')
+          .order('payment_date', { ascending: true });
+        
+        if (data && data.length > 0) {
+          setRealPayments(data);
+        }
+      } catch (e) {
+        console.log('Usando datos demo');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPayments();
   }, []);
 
   const filteredData = useMemo(() => {
-    if (!mounted) return generateDemoData(filter);
-
-    const now = new Date();
-    const dataMap = new Map<string, { date: string; revenue: number; clients: number }>();
-
-    payments.forEach((payment) => {
-      if (payment.status !== 'paid') return;
+    // Si hay datos reales de Supabase, usarlos
+    if (realPayments.length > 0) {
+      const dataMap = new Map<string, { date: string; revenue: number; clients: number }>();
       
-      const paymentDate = new Date(payment.date);
-      let key: string;
-
-      if (filter === 'day') {
-        key = paymentDate.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' });
-      } else if (filter === 'week') {
-        const weekNum = Math.ceil((paymentDate.getDate() - paymentDate.getDay() + 1) / 7);
-        key = `${paymentDate.toLocaleDateString('es-MX', { month: 'short' })} S${weekNum}`;
-      } else {
-        key = paymentDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
-      }
-
-      const existing = dataMap.get(key) || { date: key, revenue: 0, clients: 0 };
-      existing.revenue += payment.amount;
-      existing.clients += 1;
-      dataMap.set(key, existing);
-    });
-
-    const sortedData = Array.from(dataMap.values()).sort((a, b) => {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
-
-    if (sortedData.length === 0) {
-      return generateDemoData(filter);
+      realPayments.forEach((payment: any) => {
+        const paymentDate = new Date(payment.payment_date);
+        let key: string;
+        
+        if (filter === 'day') {
+          key = paymentDate.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' });
+        } else if (filter === 'week') {
+          const weekNum = Math.ceil((paymentDate.getDate() - paymentDate.getDay() + 1) / 7);
+          key = `${paymentDate.toLocaleDateString('es-MX', { month: 'short' })} S${weekNum}`;
+        } else {
+          key = paymentDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+        }
+        
+        const existing = dataMap.get(key) || { date: key, revenue: 0, clients: 0 };
+        existing.revenue += Number(payment.amount);
+        existing.clients += 1;
+        dataMap.set(key, existing);
+      });
+      
+      return Array.from(dataMap.values()).sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
     }
-
-    return sortedData;
-  }, [payments, filter, mounted]);
+    
+    // Si no hay datos reales, mostrar vacío
+    return [];
+  }, [filter, realPayments]);
 
   const totalRevenue = filteredData.reduce((sum, d) => sum + d.revenue, 0);
   const totalClients = filteredData.reduce((sum, d) => sum + d.clients, 0);
-  const avgRevenue = totalClients > 0 ? totalRevenue / totalClients : 0;
-
-  const previousData = filteredData.slice(0, -1);
-  const previousTotal = previousData.reduce((sum, d) => sum + d.revenue, 0);
-  const trend = previousTotal > 0 ? ((totalRevenue - previousTotal) / previousTotal * 100) : 0;
+  
+  const trend = 12.5;
 
   return (
     <div className="glass-card p-6 rounded-xl">
@@ -131,20 +142,25 @@ export function RevenueChart({ payments = [], clients = [] }: RevenueChartProps)
         </div>
         <div className="bg-surface-container-low/50 p-4 rounded-lg">
           <div className="flex items-center gap-2 mb-1">
-            {trend >= 0 ? (
-              <TrendingUp className="w-4 h-4 text-primary" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-error" />
-            )}
+            <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-[10px] text-on-surface-variant font-label uppercase">Tendencia</span>
           </div>
-          <p className={`font-headline text-2xl font-bold ${trend >= 0 ? 'text-primary' : 'text-error'}`}>
-            {trend >= 0 ? '+' : ''}{trend.toFixed(1)}%
+          <p className="font-headline text-2xl font-bold text-primary">
+            0%
           </p>
         </div>
       </div>
 
-      <div className="h-64">
+      {filteredData.length === 0 ? (
+        <div className="h-52 flex items-center justify-center text-on-surface-variant">
+          <div className="text-center">
+            <DollarSign className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No hay ingresos registrados</p>
+            <p className="text-[10px] opacity-50">Registra el primer pago de un cliente</p>
+          </div>
+        </div>
+      ) : (
+      <div style={{ height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={filteredData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
@@ -187,7 +203,8 @@ export function RevenueChart({ payments = [], clients = [] }: RevenueChartProps)
             />
           </AreaChart>
         </ResponsiveContainer>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -242,168 +259,107 @@ function generateDemoData(filter: FilterType) {
 }
 
 export function TotemHeatmap({ totems = [], clients = [] }: { totems?: any[]; clients?: any[] }) {
-  const [selectedTotem, setSelectedTotem] = useState<any>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [activeTab, setActiveTab] = useState<'alto' | 'medio' | 'bajo'>('alto');
 
   const totemWithClients = useMemo(() => {
-    if (!mounted) {
-      return totems.slice(0, 8).map((totem, idx) => ({
-        ...totem,
-        clientCount: Math.floor(seededRandom(idx * 17) * 10) + 1,
-        revenue: Math.floor(seededRandom(idx * 23) * 50000) + 5000,
-        lat: 19.4326 + (seededRandom(idx * 31) - 0.5) * 0.1,
-        lng: -99.1332 + (seededRandom(idx * 37) - 0.5) * 0.1,
-      }));
+    if (totems.length === 0) {
+      return [];
     }
-    return totems.map((totem, idx) => ({
+    return totems.map((totem) => ({
       ...totem,
-      clientCount: Math.floor(seededRandom(idx * 17) * 10) + 1,
-      revenue: Math.floor(seededRandom(idx * 23) * 50000) + 5000,
-      lat: 19.4326 + (seededRandom(idx * 31) - 0.5) * 0.1,
-      lng: -99.1332 + (seededRandom(idx * 37) - 0.5) * 0.1,
+      clientCount: totem.clientCount || 0,
+      revenue: totem.revenue || 0,
     }));
-  }, [totems, mounted]);
+  }, [totems]);
 
-  const maxClients = Math.max(...totemWithClients.map((t) => t.clientCount), 1);
+  const maxRevenue = Math.max(...totemWithClients.map((t) => t.revenue), 1);
+  const minRevenue = Math.min(...totemWithClients.map((t) => t.revenue), 0);
+  const midRevenue = (maxRevenue + minRevenue) / 2;
 
-  const getHeatIntensity = (clientCount: number) => {
-    const intensity = clientCount / maxClients;
-    if (intensity > 0.75) return 'bg-primary shadow-[0_0_20px_rgba(117,255,158,0.6)]';
-    if (intensity > 0.5) return 'bg-primary/70 shadow-[0_0_15px_rgba(117,255,158,0.4)]';
-    if (intensity > 0.25) return 'bg-primary/50 shadow-[0_0_10px_rgba(117,255,158,0.3)]';
-    return 'bg-primary/30';
+  const getHeatColor = (revenue: number) => {
+    if (revenue === 0) return { color: 'text-red-500', bg: 'bg-red-500', label: 'Bajo' };
+    if (revenue >= midRevenue * 1.3 && revenue > 0) return { color: 'text-green-500', bg: 'bg-green-500', label: 'Alto' };
+    if (revenue >= midRevenue && revenue > 0) return { color: 'text-yellow-500', bg: 'bg-yellow-500', label: 'Medio' };
+    return { color: 'text-red-500', bg: 'bg-red-500', label: 'Bajo' };
   };
 
-  const totalRevenue = totemWithClients.reduce((sum, t) => sum + t.revenue, 0);
-  const totalClients = totemWithClients.reduce((sum, t) => sum + t.clientCount, 0);
-  const activeTotems = totems.filter((t) => t.status === 'online').length;
+  const highIncomeTotems = totemWithClients.filter((t) => t.revenue >= midRevenue * 1.3 && t.revenue > 0).sort((a, b) => b.revenue - a.revenue);
+  const mediumIncomeTotems = totemWithClients.filter((t) => t.revenue >= midRevenue && t.revenue < midRevenue * 1.3 && t.revenue > 0).sort((a, b) => b.revenue - a.revenue);
+  const lowIncomeTotems = totemWithClients.filter((t) => t.revenue < midRevenue || t.revenue === 0).sort((a, b) => b.revenue - a.revenue);
+
+  const activeTotemsList = activeTab === 'alto' ? highIncomeTotems : activeTab === 'medio' ? mediumIncomeTotems : lowIncomeTotems;
 
   return (
-    <div className="glass-card p-6 rounded-xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="font-headline font-bold text-lg text-on-surface">Mapa de Calor - Tótems</h3>
-          <p className="text-[10px] text-on-surface-variant font-label uppercase tracking-wider">
-            Clientes por ubicación
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-[10px] text-on-surface-variant">
-            <span className="w-3 h-3 rounded-full bg-primary/30"></span>
-            <span>1-3</span>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-on-surface-variant">
-            <span className="w-3 h-3 rounded-full bg-primary/50"></span>
-            <span>4-6</span>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-on-surface-variant">
-            <span className="w-3 h-3 rounded-full bg-primary/70"></span>
-            <span>7-9</span>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-on-surface-variant">
-            <span className="w-3 h-3 rounded-full bg-primary"></span>
-            <span>10+</span>
-          </div>
-        </div>
+    <div className="glass-card p-4 rounded-xl">
+      <div className="mb-3">
+        <h3 className="font-headline font-bold text-lg text-on-surface">Ingresos por Ubicación</h3>
+        <p className="text-[10px] text-on-surface-variant font-label uppercase tracking-wider">
+          Tótems por nivel de ingresos
+        </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-surface-container-low/50 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="w-4 h-4 text-primary" />
-            <span className="text-[10px] text-on-surface-variant font-label uppercase">Ingresos</span>
-          </div>
-          <p className="font-headline text-xl font-bold text-on-surface">
-            ${totalRevenue.toLocaleString('es-MX')}
-          </p>
-        </div>
-        <div className="bg-surface-container-low/50 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-primary" />
-            <span className="text-[10px] text-on-surface-variant font-label uppercase">Clientes</span>
-          </div>
-          <p className="font-headline text-xl font-bold text-on-surface">
-            {totalClients}
-          </p>
-        </div>
-        <div className="bg-surface-container-low/50 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="text-[10px] text-on-surface-variant font-label uppercase">Activos</span>
-          </div>
-          <p className="font-headline text-xl font-bold text-on-surface">
-            {activeTotems} / {totems.length}
-          </p>
-        </div>
+      <div className="flex gap-1 mb-3">
+        <button
+          onClick={() => setActiveTab('alto')}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'alto' 
+              ? 'bg-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
+              : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest border border-green-500/20'
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${activeTab === 'alto' ? 'bg-white' : 'bg-green-500'}`}></span>
+          Alto ({highIncomeTotems.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('medio')}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'medio' 
+              ? 'bg-yellow-500 text-white shadow-[0_0_10px_rgba(234,179,8,0.5)]' 
+              : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest border border-yellow-500/20'
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${activeTab === 'medio' ? 'bg-white' : 'bg-yellow-500'}`}></span>
+          Medio ({mediumIncomeTotems.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('bajo')}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'bajo' 
+              ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]' 
+              : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest border border-red-500/20'
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${activeTab === 'bajo' ? 'bg-white' : 'bg-red-500'}`}></span>
+          Bajo ({lowIncomeTotems.length})
+        </button>
       </div>
 
-      <div className="relative h-80 bg-surface-container-low/30 rounded-lg overflow-hidden">
-        <div className="absolute inset-0 opacity-20" 
-          style={{ 
-            backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(117,255,158,0.1) 1px, transparent 0)', 
-            backgroundSize: '20px 20px' 
-          }}>
-        </div>
-        
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-primary/5 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-[10px] text-on-surface-variant/60 font-label uppercase tracking-wider">Ciudad de México</p>
-            <p className="text-xs text-primary font-headline">Centro</p>
-          </div>
-        </div>
-
-        {totemWithClients.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-on-surface-variant">No hay tótems registrados</p>
-              <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega tótems para ver el mapa de calor</p>
-            </div>
-          </div>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {activeTotemsList.length === 0 ? (
+          <p className="text-center text-on-surface-variant text-sm py-4">No hay tótems en esta categoría</p>
         ) : (
-          <div className="absolute inset-0">
-            {totemWithClients.slice(0, 12).map((totem, index) => {
-              const angle = (index / 12) * 2 * Math.PI;
-              const radius = 80 + (Math.random() * 60);
-              const x = Math.cos(angle) * radius;
-              const y = Math.sin(angle) * radius;
-              
-              return (
-                <button
-                  key={totem.id || index}
-                  onClick={() => setSelectedTotem(totem)}
-                  className={`absolute w-6 h-6 rounded-full transition-all hover:scale-150 flex items-center justify-center
-                    ${getHeatIntensity(totem.clientCount)}
-                    ${selectedTotem?.id === totem.id ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent' : ''}`}
-                  style={{
-                    left: `calc(50% + ${x}px - 12px)`,
-                    top: `calc(50% + ${y}px - 12px)`,
-                  }}
-                  title={`${totem.name}: ${totem.clientCount} clientes`}
-                >
-                  <span className="text-[8px] font-bold text-black">{totem.clientCount}</span>
-                </button>
-              );
-            })}
-          </div>
+          activeTotemsList.map((totem) => {
+            const heatInfo = getHeatColor(totem.revenue);
+            return (
+              <div
+                key={totem.id || totem.name}
+                className="flex items-center justify-between p-2 bg-surface-container-low/50 rounded-lg"
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${heatInfo.bg}`}></div>
+                  <div>
+                    <p className="text-sm font-medium text-on-surface">{totem.location}</p>
+                    <p className="text-[10px] text-on-surface-variant">{totem.clientCount} clientes</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`font-bold ${heatInfo.color}`}>${totem.revenue.toLocaleString()}</p>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
-
-      {selectedTotem && (
-        <div className="mt-4 p-4 bg-surface-container-low/50 rounded-lg flex justify-between items-center">
-          <div>
-            <p className="font-headline font-bold text-on-surface">{selectedTotem.name}</p>
-            <p className="text-[10px] text-on-surface-variant">{selectedTotem.location}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-primary font-headline font-bold">${selectedTotem.revenue.toLocaleString()}</p>
-            <p className="text-[10px] text-on-surface-variant">{selectedTotem.clientCount} clientes</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

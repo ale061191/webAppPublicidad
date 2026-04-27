@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Filter, RefreshCw, Building2, ShoppingBag, Store, Radio, MoreVertical, AlertTriangle, CheckCircle, X, Power, Trash2, Edit, Eye, Users } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Filter, RefreshCw, Building2, ShoppingBag, Store, Radio, MoreVertical, AlertTriangle, CheckCircle, X, Power, Trash2, Edit, Eye, Users, ArrowLeft } from 'lucide-react';
 import { View } from '../../types';
 import { useDB } from '../../lib/hooks';
 
@@ -154,7 +154,7 @@ function TotemForm({ onClose, totem, onSave }: { onClose: () => void; totem?: an
   );
 }
 
-function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: () => void }) {
+function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void; onNew?: () => void; onSelect?: (totem: any) => void }) {
   const totemsDB = useDB('totems');
   const totems = totemsDB.data;
 
@@ -250,9 +250,12 @@ function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: 
               <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega un nuevo tótem para comenzar</p>
             </div>
           ) : totems.map((totem: any) => (
-            <div key={totem.id} className={`grid grid-cols-12 items-center glass-card hover:bg-surface-container-low/40 transition-all px-6 py-6 border border-outline-variant/5 gap-4 ${totem.status === 'offline' ? 'bg-error/5 border-error/10' : ''}`}>
+            <div 
+              key={totem.id} 
+              onClick={() => onSelect?.(totem)}
+              className={`grid grid-cols-12 items-center glass-card hover:bg-surface-container-low/40 transition-all px-6 py-6 border border-outline-variant/5 gap-4 cursor-pointer ${totem.status === 'offline' ? 'bg-error/5 border-error/10' : ''}`}>
               <div className="col-span-1">
-                <input type="checkbox" className="form-checkbox bg-transparent border-outline-variant text-primary focus:ring-0 rounded-none w-5 h-5" />
+                <input type="checkbox" onClick={(e) => e.stopPropagation()} className="form-checkbox bg-transparent border-outline-variant text-primary focus:ring-0 rounded-none w-5 h-5" />
               </div>
               <div className="col-span-3">
                 <div className="flex items-center gap-4">
@@ -298,10 +301,10 @@ function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: 
                 </div>
               </div>
 <div className="col-span-1 flex justify-end gap-2">
-                <button onClick={() => onEdit?.(totem)} className="p-2 hover:bg-surface-container-highest transition-colors text-on-surface-variant hover:text-primary">
+                <button onClick={(e) => { e.stopPropagation(); onEdit?.(totem); }} className="p-2 hover:bg-surface-container-highest transition-colors text-on-surface-variant hover:text-primary">
                   <Edit className="w-5 h-5" />
                 </button>
-                <button onClick={() => handleDelete(totem.id)} className="p-2 hover:bg-surface-container-highest transition-colors text-error">
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(totem.id); }} className="p-2 hover:bg-surface-container-highest transition-colors text-error">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>
@@ -316,7 +319,11 @@ function TotemsList({ onEdit, onNew }: { onEdit?: (totem: any) => void; onNew?: 
 export default function Totems() {
   const [showForm, setShowForm] = useState(false);
   const [editingTotem, setEditingTotem] = useState<any>(null);
+  const [selectedTotem, setSelectedTotem] = useState<any>(null);
+  const [showClientSelector, setShowClientSelector] = useState(false);
   const totemsDB = useDB('totems');
+  const clientsDB = useDB('clients');
+  const mediaDB = useDB('media');
 
   const handleSave = async (id: number, data: any) => {
     if (id) {
@@ -331,13 +338,160 @@ export default function Totems() {
     setEditingTotem(null);
   };
 
+  const handleSelectTotem = (totem: any) => {
+    setSelectedTotem(totem);
+    setShowClientSelector(false);
+  };
+
+  const handleCloseSidebar = () => {
+    setSelectedTotem(null);
+    setShowClientSelector(false);
+  };
+
+  const handleAssignClient = async (clientId: number) => {
+    if (selectedTotem) {
+      console.log('Assigning client', clientId, 'to totem', selectedTotem.id);
+      await totemsDB.update(selectedTotem.id, { client_id: clientId });
+      const updatedTotem = { ...selectedTotem, client_id: clientId };
+      setSelectedTotem(updatedTotem);
+      setShowClientSelector(false);
+      console.log('Client assigned successfully');
+    }
+  };
+
+  const assignedClients = useMemo(() => {
+    if (!selectedTotem?.client_id) return [];
+    return clientsDB.data.filter((c: any) => c.id === selectedTotem.client_id);
+  }, [selectedTotem, clientsDB.data]);
+
+  const assignedMedia = useMemo(() => {
+    if (!selectedTotem?.client_id) return [];
+    return mediaDB.data.filter((m: any) => m.client_id === selectedTotem.client_id);
+  }, [selectedTotem, mediaDB.data]);
+
   return (
     <div className="min-h-screen bg-background text-on-surface">
       <Sidebar />
       <div className="ml-64 pt-16 px-8">
-        <TotemsList onEdit={(totem) => { setEditingTotem(totem); setShowForm(true); }} onNew={() => setShowForm(true)} />
+        <TotemsList 
+          onEdit={(totem) => { setEditingTotem(totem); setShowForm(true); }} 
+          onNew={() => setShowForm(true)} 
+          onSelect={handleSelectTotem}
+        />
       </div>
       {showForm && <TotemForm onClose={handleCloseForm} totem={editingTotem} onSave={handleSave} />}
+      
+      {/* Right Sidebar for Totem Details */}
+      {selectedTotem && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={handleCloseSidebar} />
+          <div className="fixed right-0 top-0 h-full w-96 bg-surface-container-low border-l border-outline-variant/10 z-50 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-outline-variant/10">
+              <div>
+                <h3 className="font-bold">{selectedTotem.name}</h3>
+                <p className="text-xs text-on-surface-variant">{selectedTotem.serial}</p>
+              </div>
+              <button onClick={handleCloseSidebar} className="p-2 hover:bg-surface-container-high rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Client Section */}
+              <div className="glass-card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    Cliente Asignado
+                  </h4>
+                  <button 
+                    onClick={() => setShowClientSelector(true)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    {assignedClients.length > 0 ? 'Cambiar' : '+ Asignar'}
+                  </button>
+                </div>
+                
+                {assignedClients.length > 0 ? (
+                  assignedClients.map((client: any) => (
+                    <div key={client.id} className="p-2 bg-surface-container-low rounded flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" />
+                      <span className="text-sm">{client.business_name || client.name}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-on-surface-variant">Sin cliente asignado</p>
+                )}
+              </div>
+
+              {/* Media Section */}
+              <div className="glass-card p-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Images className="w-4 h-4 text-primary" />
+                  Multimedia Asignada
+                </h4>
+                
+                {assignedMedia.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {assignedMedia.map((media: any) => (
+                      <div key={media.id} className="aspect-video bg-surface-container-low rounded flex items-center justify-center overflow-hidden">
+                        {media.type === 'video' ? (
+                          <div className="text-center p-2">
+                            <Monitor className="w-6 h-6 text-primary mx-auto" />
+                            <span className="text-[8px] truncate block w-full">{media.name}</span>
+                          </div>
+                        ) : (
+                          <img src={media.url} alt={media.name} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-on-surface-variant">Sin multimedia asignada</p>
+                )}
+              </div>
+
+              <Link href="/player" className="block w-full py-3 bg-primary text-black text-center font-bold rounded-lg hover:brightness-110">
+                VER EN PANTALLA
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Client Selector Modal */}
+      {showClientSelector && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-60">
+          <div className="glass-panel w-full max-w-md rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold">Seleccionar Cliente</h3>
+              <button onClick={() => setShowClientSelector(false)} className="p-2 hover:bg-surface-container-high rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {clientsDB.data.length === 0 ? (
+                <p className="text-sm text-on-surface-variant">No hay clientes disponibles</p>
+              ) : (
+                clientsDB.data.map((client: any) => (
+                  <button
+                    key={client.id}
+                    onClick={() => handleAssignClient(client.id)}
+                    className="w-full p-3 bg-surface-container-low hover:bg-surface-container-high rounded text-left flex items-center gap-3"
+                  >
+                    <Users className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">{client.business_name || client.name}</p>
+                      <p className="text-xs text-on-surface-variant">{client.email}</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

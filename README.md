@@ -20,7 +20,7 @@ cd C:\Users\Voltaje Plus\Documents\webAppacidad-main
 npm run dev
 ```
 
-El proyecto correra en: **http://localhost:3002**
+El proyecto correra en: **http://localhost:3001**
 
 ## Estructura del Proyecto
 
@@ -127,7 +127,7 @@ rm -rf .next
 ## Notas Importantes
 
 - **NO** subir `.env.local` a GitHub (contiene claves privadas)
-- El proyecto usa puerto **3002** por defecto
+- El proyecto usa puerto **3001** por defecto
 - Asegúrate de que las credenciales de Supabase estén correctas antes de correr
 
 ## Resolver Problemas Comunes

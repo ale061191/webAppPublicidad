@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Filter, UploadCloud, CheckCircle, Send, Tag, Delete, ChevronLeft, ChevronRight, VideoOff, CloudUpload, Users, X, Play, Pause, Trash2, Edit } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Filter, UploadCloud, CheckCircle, Send, Tag, Delete, ChevronLeft, ChevronRight, VideoOff, CloudUpload, Users, X, Play, Pause, Trash2, Edit, FileVideo, Loader2 } from 'lucide-react';
 import { View } from '@/types';
 import { useDB } from '@/lib/hooks';
+import { useStorage } from '@/lib/storage';
+import { VideoPlayer } from '@/components/VideoPlayer';
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -86,6 +88,7 @@ function Sidebar() {
 }
 
 function MediaForm({ onClose, media, onSave }: { onClose: () => void; media?: any; onSave: (id: number, data: any) => void }) {
+  const { uploadFile, uploading, progress } = useStorage();
   const [form, setForm] = useState({
     name: media?.name || '',
     type: media?.type || 'video',
@@ -94,16 +97,77 @@ function MediaForm({ onClose, media, onSave }: { onClose: () => void; media?: an
     duration: media?.duration || '30S',
     resolution: media?.resolution || '1920x1080',
     thumbnail_url: media?.thumbnail_url || '',
+    url: media?.url || '',
     tags: media?.tags || [],
     is_active: media?.is_active || false,
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
+      setForm(prev => ({
+        ...prev,
+        name: prev.name || file.name.replace(/\.[^/.]+$/, ''),
+        type: isVideo ? 'video' : isImage ? 'image' : prev.type,
+        format: file.name.split('.').pop()?.toUpperCase() || prev.format,
+        size: `${Math.round(file.size / 1024 / 1024)} MB`,
+      }));
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
+      setForm(prev => ({
+        ...prev,
+        name: prev.name || file.name.replace(/\.[^/.]+$/, ''),
+        type: isVideo ? 'video' : isImage ? 'image' : prev.type,
+        format: file.name.split('.').pop()?.toUpperCase() || prev.format,
+        size: `${Math.round(file.size / 1024 / 1024)} MB`,
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    let fileUrl = form.url;
+
+    if (selectedFile) {
+      console.log('[MediaForm] Uploading file:', selectedFile.name);
+      const result = await uploadFile(selectedFile, 'media');
+      console.log('[MediaForm] Upload result:', result);
+      if (result && result.url) {
+        fileUrl = result.url;
+        console.log('[MediaForm] File URL set to:', fileUrl);
+      } else {
+        alert('Error al subir el archivo. Verifica que el bucket "media" exista y sea público.');
+        return;
+      }
+    }
+
+    const fileData = {
+      ...form,
+      url: fileUrl,
+      size: selectedFile ? `${Math.round(selectedFile.size / 1024 / 1024)} MB` : form.size,
+      format: selectedFile ? selectedFile.name.split('.').pop()?.toUpperCase() || form.format : form.format,
+    };
+
+    console.log('[MediaForm] Saving fileData:', fileData);
+
     if (media?.id) {
-      await onSave(media.id, form);
+      await onSave(media.id, fileData);
     } else {
-      onSave(0, { ...form, url: '', client_id: null });
+      await onSave(0, fileData);
     }
     onClose();
   };
@@ -119,6 +183,44 @@ function MediaForm({ onClose, media, onSave }: { onClose: () => void; media?: an
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div 
+            className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center cursor-pointer hover:border-primary/60 transition-colors"
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept="video/*,image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            {selectedFile ? (
+              <div className="flex items-center justify-center gap-2">
+                <FileVideo className="w-8 h-8 text-primary" />
+                <div className="text-left">
+                  <p className="text-sm font-medium text-primary">{selectedFile.name}</p>
+                  <p className="text-[10px] text-on-surface-variant">{Math.round(selectedFile.size / 1024 / 1024)} MB</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <CloudUpload className="w-10 h-10 mx-auto text-primary/50 mb-2" />
+                <p className="text-sm text-on-surface-variant">Arrastra un archivo o haz clic para seleccionar</p>
+                <p className="text-[10px] text-on-surface-variant/50">MP4, MOV, WEBM | Máx 500MB</p>
+              </>
+            )}
+            {uploading && (
+              <div className="mt-4">
+                <div className="h-1 bg-surface-container-low rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }}></div>
+                </div>
+                <p className="text-[10px] text-on-surface-variant mt-1">Subiendo... {progress}%</p>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Nombre</label>
             <input type="text" required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
@@ -165,7 +267,9 @@ function MediaForm({ onClose, media, onSave }: { onClose: () => void; media?: an
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="flex-1 py-2 border border-outline-variant text-on-surface-variant hover:bg-surface-container-high">Cancelar</button>
-            <button type="submit" className="flex-1 py-2 bg-primary text-on-primary font-bold">{media ? 'Actualizar' : 'Subir'}</button>
+            <button type="submit" disabled={uploading} className="flex-1 py-2 bg-primary text-on-primary font-bold disabled:opacity-50">
+              {uploading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (media ? 'Actualizar' : 'Subir')}
+            </button>
           </div>
         </form>
       </div>
@@ -192,7 +296,7 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
     onEdit?.(item);
   };
 
-  const filteredMedia = selectedFilter 
+  const filteredMedia = selectedFilter
     ? media.filter((m: any) => m.duration === selectedFilter)
     : media;
 
@@ -202,9 +306,9 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
         <div className="max-w-xl">
           <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
           <h2 className="font-headline text-4xl font-light tracking-tight text-on-surface">Repositorio <span className="font-extrabold text-primary">Multimedia</span></h2>
-          <div className="flex gap-4 font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/60 mt-2">
+            <div className="flex gap-4 font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/60 mt-2">
             <span>ENTIDADES_INDEXADAS: {media.length}</span>
-            <span>ACTIVOS: {media.filter((m: any) => m.isActive).length}</span>
+            <span>ACTIVOS: {media.filter((m: any) => m.is_active).length}</span>
           </div>
         </div>
         <div className="flex gap-3">
@@ -263,43 +367,56 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                 <Images className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />
                 <p className="text-on-surface-variant">No hay contenido multimedia</p>
                 <p className="text-[10px] text-on-surface-variant/60 mt-2">Sube archivos para comenzar</p>
+                <p className="text-[10px] text-primary/60 mt-4 font-mono">[DEBUG: {media.length} items in DB]</p>
               </div>
             ) : filteredMedia.map((item: any) => (
-              <div key={item.id} className="group relative aspect-[9/16] glass-card overflow-hidden rounded-xl">
-                {item.thumbnailUrl ? (
-                  <img src={item.thumbnailUrl} alt={item.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-100 group-hover:scale-110" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-surface-container-low">
-                    <VideoOff className="text-primary/20 w-12 h-12" />
+              <div key={item.id} className="glass-card rounded-xl min-h-[350px] flex flex-col">
+                <div className="flex-1 relative min-h-[250px]">
+                  {item.url ? (
+                    item.type === 'video' ? (
+                      <VideoPlayer
+                        url={item.url}
+                        name={item.name}
+                        className="w-full h-full absolute inset-0"
+                      />
+                    ) : (
+                      <img
+                        key={item.url}
+                        src={item.url}
+                        alt={item.name}
+                        className="w-full h-full object-cover absolute inset-0"
+                        referrerPolicy="no-referrer"
+                      />
+                    )
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-surface-container-low absolute inset-0">
+                      <VideoOff className="text-primary/20 w-12 h-12" />
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3 flex gap-1 pointer-events-none">
+                    {item.type && <span className="bg-primary px-1.5 py-0.5 text-[8px] font-label font-bold text-on-primary uppercase tracking-tighter">{item.type}</span>}
+                    <span className="bg-surface-container-highest/80 backdrop-blur px-1.5 py-0.5 text-[8px] font-label text-on-surface uppercase tracking-tighter">{item.duration || 'N/A'}</span>
                   </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60"></div>
-                <div className="absolute top-3 left-3 flex gap-1">
-                  {item.type && <span className="bg-primary px-1.5 py-0.5 text-[8px] font-label font-bold text-on-primary uppercase tracking-tighter">{item.type}</span>}
-                  <span className="bg-surface-container-highest/80 backdrop-blur px-1.5 py-0.5 text-[8px] font-label text-on-surface uppercase tracking-tighter">{item.duration || 'N/A'}</span>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                  <p className="font-label text-[10px] uppercase tracking-widest text-primary mb-1 truncate">{item.name}</p>
-                  <p className="font-body text-[8px] text-on-surface-variant/60">{item.size} {item.resolution && `| ${item.resolution}`}</p>
-                </div>
-                {item.isActive && (
-                  <div className="absolute bottom-4 right-4">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                    </span>
+                
+                <div className="p-3 border-t border-outline-variant/10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-primary truncate">{item.name}</p>
+                      <p className="font-body text-[8px] text-on-surface-variant/60">{item.size} {item.resolution && `| ${item.resolution}`}</p>
+                    </div>
+                    <div className="flex gap-1 ml-2">
+                      <button onClick={() => handleToggleActive(item.id, item.is_active)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
+                        {item.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => handleEdit(item)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(item.id)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-error/20">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                )}
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  <button onClick={() => handleToggleActive(item.id, item.is_active)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
-                    {item.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  </button>
-                  <button onClick={() => handleEdit(item)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-primary/20">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(item.id)} className="p-1.5 bg-surface-container-highest/80 rounded-full hover:bg-error/20">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
             ))}
@@ -327,11 +444,11 @@ export default function Media() {
   const [editingMedia, setEditingMedia] = useState<any>(null);
   const mediaDB = useDB('media');
 
-const handleSave = async (id: number, data: any) => {
+  const handleSave = async (id: number, data: any) => {
     if (id) {
       await mediaDB.update(id, data);
     } else {
-      await mediaDB.create({...data, url: '', client_id: null});
+      await mediaDB.create({...data, client_id: null});
     }
   };
 

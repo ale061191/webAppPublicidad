@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD,wght,GRAD@20..48,100..700,0..1,-50..200');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,20 +13,108 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-surface/60 backdrop-blur-xl border border-white/5;
+    background: rgba(19, 19, 19, 0.7);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .glass-card {
-    @apply bg-surface-container-low/40 backdrop-blur-md border border-white/5;
+    background: rgba(28, 27, 27, 0.5);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-input {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-button-primary {
+    background: linear-gradient(135deg, #75ff9e 0%, rgba(117, 255, 158, 0.8) 100%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(117, 255, 158, 0.3);
+  }
+
+  .glass-float {
+    background: rgba(19, 19, 19, 0.9);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-sidebar {
+    background: rgba(19, 19, 19, 0.8);
+    backdrop-filter: blur(24px);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-header {
+    background: rgba(19, 19, 19, 0.7);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-modal {
+    background: rgba(19, 19, 19, 0.95);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-stat {
+    background: rgba(28, 27, 27, 0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .kinetic-gradient {
     background: linear-gradient(135deg, #75ff9e 0%, #00e676 100%);
   }
 
+  .neon-glow {
+    box-shadow: 0 0 20px rgba(117, 255, 158, 0.4), 0 0 40px rgba(117, 255, 158, 0.2);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 15px rgba(117, 255, 158, 0.5), 0 0 30px rgba(117, 255, 158, 0.3);
+  }
+
+  .glow-yellow {
+    box-shadow: 0 0 15px rgba(255, 217, 61, 0.5), 0 0 30px rgba(255, 217, 61, 0.3);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.5), 0 0 30px rgba(255, 107, 107, 0.3);
+  }
+
   .pulse-indicator {
     box-shadow: 0 0 0 0 rgba(117, 255, 158, 0.4);
     animation: pulse 2s infinite;
+  }
+
+  .stat-card-green {
+    border-left: 4px solid #75FF9E;
+    background: linear-gradient(135deg, rgba(117, 255, 158, 0.1) 0%, transparent 100%);
+  }
+
+  .stat-card-yellow {
+    border-left: 4px solid #FFD93D;
+    background: linear-gradient(135deg, rgba(255, 217, 61, 0.1) 0%, transparent 100%);
+  }
+
+  .stat-card-red {
+    border-left: 4px solid #FF6B6B;
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, transparent 100%);
+  }
+
+  .stat-card-blue {
+    border-left: 4px solid #6BCBFF;
+    background: linear-gradient(135deg, rgba(107, 203, 255, 0.1) 0%, transparent 100%);
   }
 }
 
@@ -32,4 +122,19 @@
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(117, 255, 158, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(117, 255, 158, 0); }
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(117, 255, 158, 0); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }

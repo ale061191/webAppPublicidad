@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, X, FileVideo, FileImage } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, X, FileVideo, FileImage, ListVideo, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { View } from '../../types';
 import { useDB } from '../../lib/hooks';
 
@@ -12,6 +12,8 @@ const navItems = [
   { id: 'clients' as View, label: 'Clientes', href: '/clients' },
   { id: 'totems' as View, label: 'Tótems', href: '/totems' },
   { id: 'media' as View, label: 'Multimedia', href: '/media' },
+  { id: 'playlist' as View, label: 'Playlists', href: '/playlist' },
+  { id: 'reports' as View, label: 'Reportes', href: '/reports' },
   { id: 'settings' as View, label: 'Ajustes', href: '/settings' },
 ];
 
@@ -42,6 +44,8 @@ function Sidebar() {
               {item.id === 'clients' && <Users className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
+              {item.id === 'playlist' && <ListVideo className="mr-4 w-5 h-5" />}
+              {item.id === 'reports' && <FileSpreadsheet className="mr-4 w-5 h-5" />}
               {item.id === 'settings' && <Settings className="mr-4 w-5 h-5" />}
               <span className="font-label text-sm uppercase tracking-wider">{item.label}</span>
             </Link>
@@ -73,7 +77,7 @@ function ClientForm({ onClose, client, onSave }: { onClose: () => void; client?:
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="glass-panel p-8 rounded-xl w-full max-w-lg">
+      <div className="glass-modal p-8 rounded-xl w-full max-w-lg">
         <div className="flex justify-between items-center mb-6">
           <h2 className="font-headline text-xl font-bold">{client ? 'Editar' : 'Nuevo'} Cliente</h2>
           <button onClick={onClose} className="text-on-surface-variant hover:text-primary">
@@ -171,7 +175,7 @@ export default function Clients() {
 
   const availableMedia = useMemo(() => {
     if (!selectedClient) return [];
-    return mediaDB.data.filter((m: any) => !m.client_id || m.client_id === selectedClient.id);
+    return mediaDB.data;
   }, [selectedClient, mediaDB.data]);
 
   return (
@@ -256,18 +260,35 @@ export default function Clients() {
                     <Images className="w-4 h-4 text-primary" />
                     Multimedia Asignada
                   </h4>
-                  <button 
-                    onClick={() => setShowMediaSelector(true)}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    + Agregar
-                  </button>
+                  <div className="flex gap-2">
+                    {assignedMedia.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          if (confirm(`¿Eliminar toda la multimedia asignada (${assignedMedia.length} items)?`)) {
+                            assignedMedia.forEach((media: any) => {
+                              mediaDB.update(media.id, { client_id: null });
+                            });
+                          }
+                        }}
+                        className="text-xs text-error hover:underline"
+                        title="Eliminar todos"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => setShowMediaSelector(true)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      + Agregar
+                    </button>
+                  </div>
                 </div>
                 
                 {assignedMedia.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2">
                     {assignedMedia.map((media: any) => (
-                      <div key={media.id} className="aspect-video bg-surface-container-low rounded flex items-center justify-center overflow-hidden">
+                      <div key={media.id} className="relative aspect-video bg-surface-container-low rounded flex items-center justify-center overflow-hidden group">
                         {media.type === 'video' ? (
                           <div className="text-center p-2">
                             <FileVideo className="w-6 h-6 text-primary mx-auto" />
@@ -276,6 +297,17 @@ export default function Clients() {
                         ) : (
                           <img src={media.url} alt={media.name} className="w-full h-full object-cover" />
                         )}
+                        <button
+                          onClick={() => {
+                            if (confirm('¿Eliminar este elemento multimedia del cliente?')) {
+                              mediaDB.update(media.id, { client_id: null });
+                            }
+                          }}
+                          className="absolute top-1 right-1 p-1 bg-error/80 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-3 h-3 text-white" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -293,8 +325,8 @@ export default function Clients() {
       )}
 
       {showMediaSelector && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-60">
-          <div className="glass-panel w-full max-w-md rounded-xl p-6">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[70]">
+          <div className="glass-panel w-full max-w-md rounded-xl p-6 relative z-[71]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold">Agregar Multimedia</h3>
               <button onClick={() => setShowMediaSelector(false)} className="p-2 hover:bg-surface-container-high rounded-lg">

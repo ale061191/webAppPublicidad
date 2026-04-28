@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings as SettingsIcon, Plus, Code2, Database, UserPlus, Edit, Delete, Users as UsersIcon, X, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings as SettingsIcon, Plus, Code2, Database, UserPlus, Edit, Delete, Users as UsersIcon, X, Eye, EyeOff, ListVideo, MonitorPlay, Save, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { View } from '@/types';
 import { useDB, useUser } from '@/lib/hooks';
 
@@ -12,6 +12,8 @@ const navItems = [
   { id: 'clients' as View, label: 'Clientes', href: '/clients' },
   { id: 'totems' as View, label: 'Tótems', href: '/totems' },
   { id: 'media' as View, label: 'Multimedia', href: '/media' },
+  { id: 'playlist' as View, label: 'Playlists', href: '/playlist' },
+  { id: 'reports' as View, label: 'Reportes', href: '/reports' },
   { id: 'settings' as View, label: 'Ajustes', href: '/settings' },
 ];
 
@@ -58,6 +60,8 @@ function Sidebar() {
               {item.id === 'clients' && <UsersIcon className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
+              {item.id === 'playlist' && <ListVideo className="mr-4 w-5 h-5" />}
+              {item.id === 'reports' && <FileSpreadsheet className="mr-4 w-5 h-5" />}
               {item.id === 'settings' && <SettingsIcon className="mr-4 w-5 h-5" />}
               <span className="font-label text-sm uppercase tracking-wider">{item.label}</span>
             </Link>
@@ -166,6 +170,7 @@ function UserForm({ onClose, user, onSave }: { onClose: () => void; user?: any; 
 function SettingsPage() {
   const usersDB = useDB('users');
   const users = usersDB.data;
+  const settingsDB = useDB('system_settings');
   const { user, updateUser } = useUser();
   const [notifications, setNotifications] = useState({
     serverAlerts: true,
@@ -179,6 +184,62 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [displayCode, setDisplayCode] = useState('');
+  const [codeSaved, setCodeSaved] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [codeLoaded, setCodeLoaded] = useState(false);
+
+  useEffect(() => {
+    if (settingsDB.data && settingsDB.loading === false) {
+      const code = settingsDB.data.find((s: any) => s.key === 'display_code');
+      if (code && code.value) {
+        setDisplayCode(code.value);
+        localStorage.setItem('voltaje_display_code', code.value);
+      } else {
+        const savedLocal = localStorage.getItem('voltaje_display_code');
+        if (savedLocal) {
+          setDisplayCode(savedLocal);
+        } else {
+          setDisplayCode('000000');
+        }
+      }
+      setCodeLoaded(true);
+    }
+  }, [settingsDB.data, settingsDB.loading]);
+
+  const handleSaveDisplayCode = async () => {
+    if (displayCode.length !== 6) return;
+    setSaving(true);
+    try {
+      localStorage.setItem('voltaje_display_code', displayCode);
+      const existing = settingsDB.data?.find((s: any) => s.key === 'display_code');
+      if (existing && existing.id) {
+        await settingsDB.update(existing.id, { value: displayCode });
+      } else {
+        await settingsDB.create({ key: 'display_code', value: displayCode });
+      }
+      setSaving(false);
+      setCodeSaved(true);
+      setTimeout(() => setCodeSaved(false), 3000);
+    } catch (error) {
+      console.error('Error saving code:', error);
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteDisplayCode = async () => {
+    if (!confirm('¿Eliminar el código de acceso? Los tótems no podrán conectarse sin código.')) return;
+    try {
+      localStorage.removeItem('voltaje_display_code');
+      const existing = settingsDB.data?.find((s: any) => s.key === 'display_code');
+      if (existing && existing.id) {
+        await settingsDB.remove(existing.id);
+      }
+      setDisplayCode('000000');
+    } catch (error) {
+      console.error('Error deleting code:', error);
+    }
+  };
 
   const handleSaveUser = async (id: number, data: any) => {
     if (id) {
@@ -225,6 +286,59 @@ function SettingsPage() {
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 lg:col-span-8 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section className="p-8 bg-surface-container-low border-b-2 border-transparent hover:border-primary/20 transition-all duration-300">
+              <div className="flex justify-between items-start mb-6">
+                <MonitorPlay className="text-primary w-8 h-8" />
+                <span className="font-label text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">Display</span>
+              </div>
+              <h3 className="font-headline text-lg font-bold mb-4">Código de Acceso Display</h3>
+              <p className="font-body text-sm text-on-surface-variant mb-4">Código de 6 dígitos para acceder a los tótems desde display remoto.</p>
+              <div className="space-y-4">
+                <div className="relative">
+                  <label className="font-label text-[10px] text-on-surface-variant uppercase block mb-1">Código (6 dígitos)</label>
+                  <div className="relative">
+                    <input 
+                      type={showCode ? "text" : "password"}
+                      maxLength={6}
+                      value={displayCode}
+                      onChange={(e) => setDisplayCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="w-full bg-surface-container-high border-none text-lg font-bold font-mono tracking-[0.5em] py-3 px-4 pr-12 focus:ring-2 focus:ring-primary"
+                      placeholder="------"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCode(!showCode)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary"
+                    >
+                      {showCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSaveDisplayCode}
+                    disabled={saving || displayCode.length !== 6}
+                    className="flex-1 py-3 bg-primary text-black font-bold font-label text-xs uppercase tracking-wider rounded-lg disabled:opacity-50 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {codeSaved ? '¡Guardado!' : 'GUARDAR'}
+                  </button>
+                  {displayCode !== '000000' && (
+                    <button 
+                      onClick={handleDeleteDisplayCode}
+                      className="py-3 px-4 bg-error/20 text-error font-bold rounded-lg hover:bg-error/30 transition-all"
+                      title="Eliminar código"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-on-surface-variant">
+                  Enlace: <span className="text-primary font-mono">tu-dominio.com/display/[id]</span>
+                </p>
+              </div>
+            </section>
+
             <section className="p-8 bg-surface-container-low border-b-2 border-transparent hover:border-primary/20 transition-all duration-300">
               <div className="flex justify-between items-start mb-6">
                 <Code2 className="text-primary w-8 h-8" />

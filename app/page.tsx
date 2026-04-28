@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft, Users } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft, Users, ListVideo, FileSpreadsheet } from 'lucide-react';
 import { View } from '../types';
 import { useDB } from '../lib/hooks';
 import { RevenueChart, TotemHeatmap } from '../components/RevenueCharts';
@@ -13,6 +13,8 @@ const navItems = [
   { id: 'clients' as View, label: 'Clientes', href: '/clients' },
   { id: 'totems' as View, label: 'Tótems', href: '/totems' },
   { id: 'media' as View, label: 'Multimedia', href: '/media' },
+  { id: 'playlist' as View, label: 'Playlists', href: '/playlist' },
+  { id: 'reports' as View, label: 'Reportes', href: '/reports' },
   { id: 'settings' as View, label: 'Ajustes', href: '/settings' },
 ];
 
@@ -36,7 +38,7 @@ function Sidebar() {
   const getInitials = (name: string) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'A';
   
   return (
-    <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
+    <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-sidebar w-64 z-50">
       <div className="px-6 mb-12">
         <h1 className="text-lg font-bold tracking-tight text-primary font-headline leading-tight">VOLTAJE ADS MANAGER</h1>
         <p className="font-label text-[9px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
@@ -59,6 +61,8 @@ function Sidebar() {
               {item.id === 'clients' && <Users className="mr-4 w-5 h-5" />}
               {item.id === 'totems' && <Monitor className="mr-4 w-5 h-5" />}
               {item.id === 'media' && <Images className="mr-4 w-5 h-5" />}
+              {item.id === 'playlist' && <ListVideo className="mr-4 w-5 h-5" />}
+              {item.id === 'reports' && <FileSpreadsheet className="mr-4 w-5 h-5" />}
               {item.id === 'settings' && <Settings className="mr-4 w-5 h-5" />}
               <span className="font-label text-sm uppercase tracking-wider">{item.label}</span>
             </Link>

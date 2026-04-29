@@ -88,14 +88,12 @@ function TotemForm({ onClose, totem, onSave }: { onClose: () => void; totem?: an
     serial: totem?.serial || '',
     location: totem?.location || '',
     status: totem?.status || 'online',
-    latency: totem?.latency || '0ms',
-    lastSync: totem?.lastSync || new Date().toLocaleTimeString(),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (totem?.id) {
-      await onSave(totem.id, form);
+      onSave(totem.id, form);
     } else {
       onSave(0, form);
     }

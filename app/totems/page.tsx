@@ -309,6 +309,20 @@ export default function Totems() {
   const mediaDB = useDB('media');
   const playlistDB = useDB('playlist_items');
 
+  useEffect(() => {
+    if (!selectedTotem) return;
+    const interval = setInterval(() => {
+      totemsDB.refresh();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedTotem]);
+
+  useEffect(() => {
+    if (!selectedTotem || !totemsDB.data.length) return;
+    const updatedTotem = totemsDB.data.find((t: any) => t.id === selectedTotem.id);
+    if (updatedTotem) setSelectedTotem(updatedTotem);
+  }, [totemsDB.data, selectedTotem?.id]);
+
   const handleSave = async (id: number, data: any) => {
     if (id) {
       await totemsDB.update(id, data);

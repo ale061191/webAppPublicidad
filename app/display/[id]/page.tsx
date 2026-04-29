@@ -1,22 +1,24 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useDB } from '@/lib/hooks';
-import { Play, Pause, X, Monitor, Lock, Unlock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
+import { Play, Pause, Monitor, Lock, Clock, RefreshCw, AlertCircle, Maximize2, Minimize2 } from 'lucide-react';
 
 type DisplayState = 'enter_code' | 'playing' | 'error';
 
 export default function DisplayPage() {
   const params = useParams();
   const totemId = parseInt(params.id as string);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const [displayState, setDisplayState] = useState<DisplayState>('enter_code');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const settingsDB = useDB('system_settings');
   const displayCode = useMemo(() => {
@@ -44,6 +46,32 @@ export default function DisplayPage() {
     return mediaDB.data.find((m: any) => m.id === currentItem.media_id);
   }, [currentItem, mediaDB.data]);
   
+  useEffect(() => {
+    if (displayState === 'playing' && document.documentElement) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+    }
+    
+    function enableImmersive() {
+      if (typeof window !== 'undefined' && 'Android' in window) {
+        try {
+          (window as any).Android.enableImmersiveMode();
+        } catch (e) {}
+      }
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+    
+    if (displayState === 'playing') {
+      enableImmersive();
+      const timer = setTimeout(enableImmersive, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [displayState]);
+  
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (code === displayCode) {
@@ -56,13 +84,6 @@ export default function DisplayPage() {
   };
   
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLastRefresh(Date.now());
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
-  
-  useEffect(() => {
     if (!isPlaying || playlist.length === 0) return;
     const timer = setTimeout(() => {
       setCurrentIndex((prev) => (prev + 1) % playlist.length);
@@ -70,141 +91,264 @@ export default function DisplayPage() {
     return () => clearTimeout(timer);
   }, [currentIndex, isPlaying, playlist.length, currentItem?.duration_secs]);
   
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+  
   if (displayState === 'enter_code') {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-12">
-            <Monitor className="w-20 h-20 text-primary mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-white font-headline mb-2">VOLTAJE ADS</h1>
-            <p className="text-white/50 font-label text-lg">Tótem #{totemId}</p>
-          </div>
-          
-          <form onSubmit={handleCodeSubmit} className="glass-panel rounded-2xl p-8 border border-primary/20">
-            <div className="text-center mb-6">
-              <Lock className="w-8 h-8 text-primary mx-auto mb-2" />
-              <h2 className="text-xl font-bold text-white font-headline">Ingresa el código de acceso</h2>
-              <p className="text-white/50 text-sm mt-1">Código de seguridad del sistema</p>
-            </div>
-            
-            <input
-              type="text"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full bg-black/30 border border-primary/30 rounded-xl py-4 px-6 text-center text-3xl font-bold text-white tracking-[0.5em] mb-4 focus:outline-none focus:border-primary"
-              placeholder="------"
-              autoFocus
-            />
-            
-            {error && (
-              <div className="flex items-center justify-center gap-2 text-red-400 mb-4">
-                <AlertCircle className="w-4 h-4" />
-                <span className="text-sm">{error}</span>
+      <html lang="es">
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="theme-color" content="#000000" />
+        </head>
+        <body style={{ margin: 0, padding: 0, backgroundColor: '#000', overflow: 'hidden' }}>
+          <div style={{ 
+            minHeight: '100vh', 
+            backgroundColor: '#000', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            padding: '2rem'
+          }}>
+            <div style={{ width: '100%', maxWidth: '400px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+                <Monitor style={{ width: '5rem', height: '5rem', color: '#75ff9e', margin: '0 auto 1.5rem' }} />
+                <h1 style={{ color: '#fff', fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>VOLTAJE ADS</h1>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', marginTop: '0.5rem' }}>Tótem #{totemId}</p>
               </div>
-            )}
-            
-            <button
-              type="submit"
-              disabled={code.length !== 6}
-              className="w-full py-4 bg-primary text-black font-bold font-label text-lg uppercase tracking-wider rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 transition-all"
-            >
-              <Unlock className="w-5 h-5 inline mr-2" />
-              Acceder
-            </button>
-          </form>
-          
-          <p className="text-center text-white/20 text-xs mt-8">
-            Sistema de publicidad voltaje
-          </p>
-        </div>
-      </div>
+              
+              <form onSubmit={handleCodeSubmit} style={{ 
+                backgroundColor: 'rgba(255,255,255,0.05)', 
+                border: '1px solid rgba(117,255,158,0.2)',
+                borderRadius: '1rem',
+                padding: '2rem'
+              }}>
+                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                  <Lock style={{ width: '2rem', height: '2rem', color: '#75ff9e', margin: '0 auto 0.5rem' }} />
+                  <h2 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Ingresa el código de acceso</h2>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Código de seguridad del sistema</p>
+                </div>
+                
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(117,255,158,0.3)',
+                    borderRadius: '0.75rem',
+                    padding: '1rem',
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold',
+                    color: '#fff',
+                    textAlign: 'center',
+                    letterSpacing: '0.5em',
+                    outline: 'none'
+                  }}
+                  placeholder="------"
+                  autoFocus
+                />
+                
+                {error && (
+                  <div style={{ color: '#ff6b6b', textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem' }}>
+                    {error}
+                  </div>
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={code.length !== 6}
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    backgroundColor: code.length === 6 ? '#75ff9e' : 'rgba(117,255,158,0.3)',
+                    color: '#000',
+                    fontWeight: 'bold',
+                    borderRadius: '0.75rem',
+                    border: 'none',
+                    cursor: code.length === 6 ? 'pointer' : 'not-allowed',
+                    opacity: code.length === 6 ? 1 : 0.5,
+                    marginTop: '1rem',
+                    fontSize: '1rem'
+                  }}
+                >
+                  ACCEDER
+                </button>
+              </form>
+              
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', marginTop: '2rem' }}>
+                Sistema de publicidad voltaje
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
     );
   }
   
   if (playlist.length === 0) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
-        <AlertCircle className="w-16 h-16 text-yellow-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white"> Playlist vacía</h2>
-        <p className="text-white/50 mt-2"> Este tótem no tiene contenido asignado</p>
-      </div>
+      <html lang="es">
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        </head>
+        <body style={{ margin: 0, padding: 0, backgroundColor: '#000', overflow: 'hidden' }}>
+          <div style={{ 
+            minHeight: '100vh', 
+            backgroundColor: '#000', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center'
+          }}>
+            <AlertCircle style={{ width: '4rem', height: '4rem', color: '#FFD93D', marginBottom: '1rem' }} />
+            <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>Playlist vacía</h2>
+            <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: '0.5rem' }}>Este tótem no tiene contenido asignado</p>
+          </div>
+        </body>
+      </html>
     );
   }
   
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
-        <div className="glass-panel px-4 py-2 rounded-full flex items-center gap-2">
-          <Monitor className="w-4 h-4 text-primary" />
-          <span className="text-white/70 text-sm font-label">TÓTEM #{totemId}</span>
-        </div>
+    <div 
+      ref={containerRef}
+      style={{ 
+        width: '100vw', 
+        height: '100vh', 
+        backgroundColor: '#000', 
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        margin: 0,
+        padding: 0
+      }}
+    >
+      <video
+        ref={videoRef}
+        key={currentMedia?.id}
+        src={currentMedia?.url}
+        autoPlay
+        muted
+        loop={false}
+        playsInline
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          backgroundColor: '#000'
+        }}
+        onEnded={() => setCurrentIndex((prev) => (prev + 1) % playlist.length)}
+        onError={() => {
+          setTimeout(() => setCurrentIndex((prev) => (prev + 1) % playlist.length), 3000);
+        }}
+      />
+      
+      <div style={{
+        position: 'fixed',
+        top: 16,
+        right: 16,
+        zIndex: 9999,
+        display: 'flex',
+        gap: 8,
+        opacity: 0,
+        transition: 'opacity 0.3s'
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
+      >
         <button
           onClick={() => setIsPlaying(!isPlaying)}
-          className="glass-panel p-2 rounded-full hover:bg-white/10"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            border: 'none',
+            borderRadius: '50%',
+            padding: 8,
+            cursor: 'pointer'
+          }}
         >
           {isPlaying ? (
-            <Pause className="w-5 h-5 text-white" />
+            <Pause style={{ width: 20, height: 20, color: '#fff' }} />
           ) : (
-            <Play className="w-5 h-5 text-white" />
+            <Play style={{ width: 20, height: 20, color: '#fff' }} />
           )}
         </button>
         <button
           onClick={() => window.location.reload()}
-          className="glass-panel p-2 rounded-full hover:bg-white/10"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            border: 'none',
+            borderRadius: '50%',
+            padding: 8,
+            cursor: 'pointer'
+          }}
         >
-          <RefreshCw className="w-5 h-5 text-white" />
+          <RefreshCw style={{ width: 20, height: 20, color: '#fff' }} />
         </button>
         <button
           onClick={() => setDisplayState('enter_code')}
-          className="glass-panel p-2 rounded-full hover:bg-white/10"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            border: 'none',
+            borderRadius: '50%',
+            padding: 8,
+            cursor: 'pointer'
+          }}
         >
-          <Lock className="w-5 h-5 text-white" />
+          <Lock style={{ width: 20, height: 20, color: '#fff' }} />
         </button>
       </div>
       
-      <div className="absolute bottom-4 left-4 z-50 flex items-center gap-4">
-        <div className="flex items-center gap-2 text-white/30 text-xs">
-          <Clock className="w-3 h-3" />
+      <div style={{
+        position: 'fixed',
+        bottom: 16,
+        left: 16,
+        zIndex: 9999,
+        opacity: 0,
+        transition: 'opacity 0.3s'
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
+      >
+        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Clock style={{ width: 12, height: 12 }} />
           <span>{new Date().toLocaleTimeString()}</span>
         </div>
       </div>
       
-      <div className="absolute inset-0 flex items-center justify-center">
-        {currentMedia ? (
-          <div className="relative w-full h-full flex items-center justify-center">
-            {currentMedia.type === 'video' ? (
-              <video
-                key={currentMedia.id}
-                src={currentMedia.url}
-                autoPlay
-                muted
-                loop={false}
-                className="max-w-full max-h-full object-contain"
-                onEnded={() => setCurrentIndex((prev) => (prev + 1) % playlist.length)}
-                onError={() => {
-                  setTimeout(() => setCurrentIndex((prev) => (prev + 1) % playlist.length), 3000);
-                }}
-              />
-            ) : (
-              <img
-                key={currentMedia.id}
-                src={currentMedia.url}
-                alt={currentMedia.name}
-                className="max-w-full max-h-full object-contain"
-              />
-            )}
-          </div>
-        ) : (
-          <div className="text-white/50">Cargando...</div>
-        )}
-      </div>
-      
-      <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2">
-        <div className="glass-panel px-3 py-1 rounded-full">
-          <span className="text-white/50 text-xs font-label">
-            {currentIndex + 1} / {playlist.length}
-          </span>
+      <div style={{
+        position: 'fixed',
+        bottom: 16,
+        right: 16,
+        zIndex: 9999,
+        opacity: 0,
+        transition: 'opacity 0.3s'
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
+      >
+        <div style={{ 
+          backgroundColor: 'rgba(255,255,255,0.2)', 
+          borderRadius: '9999px', 
+          padding: '0.5rem 0.75rem',
+          fontSize: '0.75rem',
+          color: 'rgba(255,255,255,0.5)'
+        }}>
+          {currentIndex + 1} / {playlist.length}
         </div>
       </div>
     </div>

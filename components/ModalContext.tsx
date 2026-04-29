@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, createContext, useContext, useCallback, ReactNode } from 'react';
-import { ConfirmModal, AlertModal } from '@/components/ConfirmModal';
+import { ConfirmModal, AlertModal } from './ConfirmModal';
 
 interface ConfirmOptions {
   title: string;
@@ -15,6 +15,10 @@ interface AlertOptions {
   title: string;
   message: string;
   type?: 'success' | 'error' | 'info';
+}
+
+interface AlertState extends AlertOptions {
+  isOpen: boolean;
 }
 
 interface ModalContextType {
@@ -32,7 +36,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     type: 'danger',
   });
 
-  const [alertState, setAlertState] = useState<AlertOptions & { isOpen: boolean }>({
+  const [alertState, setAlertState] = useState<AlertState & { resolve?: () => void }>({
     isOpen: false,
     title: '',
     message: '',

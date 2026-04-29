@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, DragEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Play, Pause, Users, Building2, Clock, Trash2, Edit, X, FileVideo, FileImage, Zap, ListVideo, Eye, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Play, Pause, Users, Building2, Clock, Trash2, Edit, X, FileVideo, FileImage, Zap, ListVideo, Eye, FileSpreadsheet, GripVertical } from 'lucide-react';
 import { View } from '@/types';
 import { useDB } from '@/lib/hooks';
 
@@ -89,6 +89,39 @@ export default function PlaylistsDashboard() {
   const playlistDB = useDB('playlist_items');
 
   const [selectedTotem, setSelectedTotem] = useState<any>(null);
+  const [draggedItem, setDraggedItem] = useState<any>(null);
+
+  const handleDragStart = (e: DragEvent, item: any) => {
+    setDraggedItem(item);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: DragEvent, targetItem: any) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem.id === targetItem.id) return;
+    
+    const items = [...(playlistByTotem[selectedTotem?.id] || [])];
+    const draggedIdx = items.findIndex((i: any) => i.id === draggedItem.id);
+    const targetIdx = items.findIndex((i: any) => i.id === targetItem.id);
+    
+    if (draggedIdx === -1 || targetIdx === -1) return;
+    
+    const [removed] = items.splice(draggedIdx, 1);
+    items.splice(targetIdx, 0, removed);
+    
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].position !== i) {
+        await playlistDB.update(items[i].id, { position: i });
+      }
+    }
+    
+    setDraggedItem(null);
+  };
 
   const playlistByTotem = useMemo(() => {
     const grouped: Record<number, any[]> = {};
@@ -230,7 +263,15 @@ export default function PlaylistsDashboard() {
                               const client = clientsDB.data.find((c: any) => c.id === item.client_id);
                               const media = mediaDB.data.find((m: any) => m.id === item.media_id);
                               return (
-                                <div key={item.id} className="p-3 flex items-center gap-3 hover:bg-surface-container-low">
+                                <div 
+                                  key={item.id} 
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, item)}
+                                  onDragOver={handleDragOver}
+                                  onDrop={(e) => handleDrop(e, item)}
+                                  className={`p-3 flex items-center gap-3 hover:bg-surface-container-low cursor-move ${draggedItem?.id === item.id ? 'opacity-50' : ''}`}
+                                >
+                                  <GripVertical className="w-4 h-4 text-on-surface-variant/40 cursor-grab flex-shrink-0" />
                                   <span className="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-xs font-bold">
                                     {idx + 1}
                                   </span>

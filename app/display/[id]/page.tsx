@@ -118,12 +118,15 @@ export default function DisplayPage() {
   };
 
   const sendHeartbeat = async () => {
+    console.log('[Display] Sending heartbeat for totem:', totemId);
     try {
-      await fetch('/api/heartbeat', {
+      const response = await fetch('/api/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ totemId, timestamp: new Date().toISOString() })
       });
+      const result = await response.json();
+      console.log('[Display] Heartbeat response:', result);
     } catch (e) {
       console.log('[Display] Heartbeat error:', e);
     }
@@ -131,11 +134,12 @@ export default function DisplayPage() {
 
   useEffect(() => {
     if (displayState === 'playing') {
+      console.log('[Display] Starting heartbeat for totem:', totemId);
       sendHeartbeat();
-      const interval = setInterval(sendHeartbeat, 30000);
+      const interval = setInterval(sendHeartbeat, 10000);
       return () => clearInterval(interval);
     }
-  }, [displayState]);
+  }, [displayState, totemId]);
   
   useEffect(() => {
     if (!isPlaying || playlist.length === 0) return;

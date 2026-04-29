@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Filter, UploadCloud, CheckCircle, Send, Tag, Delete, ChevronLeft, ChevronRight, VideoOff, CloudUpload, Users, X, Play, Pause, Trash2, Edit, FileVideo, Loader2, ListVideo, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Filter, UploadCloud, CheckCircle, Send, Tag, Delete, ChevronLeft, ChevronRight, VideoOff, CloudUpload, Users, X, Play, Pause, Trash2, Edit, FileVideo, Loader2, ListVideo, FileSpreadsheet, Search } from 'lucide-react';
 import { View } from '@/types';
 import { useDB } from '@/lib/hooks';
 import { useStorage } from '@/lib/storage';
@@ -72,12 +72,7 @@ function Sidebar() {
       </nav>
 
       <div className="px-6 mt-auto">
-        <button className="w-full py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold font-label text-[10px] uppercase tracking-widest rounded-lg hover:brightness-110 transition-all active:scale-95 shadow-[0_0_20px_rgba(117,255,158,0.2)] flex items-center justify-center gap-2">
-          <Plus className="w-4 h-4" />
-          Desplegar Nuevo Tótem
-        </button>
-        
-        <div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
+        <div className="flex items-center p-3 glass-card rounded-xl">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
             {getInitials(profile.displayName)}
           </div>
@@ -285,6 +280,7 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
   const mediaDB = useDB('media');
   const media = mediaDB.data;
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleDelete = async (id: number) => {
     if (confirm('¿Eliminar este contenido?')) {
@@ -300,9 +296,19 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
     onEdit?.(item);
   };
 
-  const filteredMedia = selectedFilter
-    ? media.filter((m: any) => m.duration === selectedFilter)
-    : media;
+  const filteredMedia = useMemo(() => {
+    let result = media || [];
+    if (selectedFilter) {
+      result = result.filter((m: any) => m.duration === selectedFilter);
+    }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((m: any) => 
+        m.name?.toLowerCase().includes(query)
+      );
+    }
+    return result;
+  }, [media, selectedFilter, searchQuery]);
 
   return (
     <div className="space-y-10">
@@ -316,6 +322,16 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
           </div>
         </div>
         <div className="flex gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-surface-container-high border border-outline-variant rounded-lg text-sm w-48"
+            />
+          </div>
           <button onClick={() => setSelectedFilter(selectedFilter ? null : '30S')} className={`px-6 py-2 border hover:bg-surface-container-high transition-all text-on-surface font-label text-[10px] uppercase tracking-widest flex items-center gap-2 ${selectedFilter ? 'border-primary text-primary' : 'border-outline-variant/30'}`}>
             <Filter className="w-4 h-4" />
             Filtros {selectedFilter && `(${selectedFilter})`}

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, X, FileVideo, FileImage, ListVideo, AlertTriangle, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, X, FileVideo, FileImage, ListVideo, AlertTriangle, FileSpreadsheet, Search } from 'lucide-react';
 import { View } from '../../types';
 import { useDB } from '../../lib/hooks';
 
@@ -131,9 +131,20 @@ export default function Clients() {
   const [editingClient, setEditingClient] = useState<any>(null);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const clientsDB = useDB('clients');
   const mediaDB = useDB('media');
+
+  const filteredClients = useMemo(() => {
+    if (!searchQuery.trim()) return clientsDB.data || [];
+    const query = searchQuery.toLowerCase();
+    return (clientsDB.data || []).filter((client: any) => 
+      client.name?.toLowerCase().includes(query) ||
+      client.business_name?.toLowerCase().includes(query) ||
+      client.email?.toLowerCase().includes(query)
+    );
+  }, [clientsDB.data, searchQuery]);
 
   const handleSave = async (id: number, data: any) => {
     if (id) {
@@ -183,25 +194,34 @@ export default function Clients() {
       <Sidebar />
       <div className="ml-64 pt-16 px-8">
         <div className="space-y-8">
-          <div className="flex justify-between items-end">
+          <div className="flex justify-between items-center">
             <div>
               <p className="font-label text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Resumen del Sistema</p>
               <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Gestión <span className="font-extrabold text-primary">Clientes</span></h2>
             </div>
-            <button onClick={() => setShowForm(true)}
-              className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]">
-              <Plus className="w-4 h-4" /> Nuevo Cliente
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                <input type="text" placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 bg-surface-container-high border border-outline-variant rounded-lg text-sm w-48"
+                />
+              </div>
+              <button onClick={() => setShowForm(true)}
+                className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]"
+              >
+                <Plus className="w-4 h-4" /> Nuevo Cliente
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {clientsDB.data.length === 0 ? (
+            {filteredClients.length === 0 ? (
               <div className="col-span-3 glass-card p-12 text-center">
                 <Users className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />
-                <p className="text-on-surface-variant">No hay clientes registrados</p>
-                <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega un cliente para comenzar</p>
+                <p className="text-on-surface-variant">{searchQuery ? 'No se encontraron resultados' : 'No hay clientes registrados'}</p>
+                <p className="text-[10px] text-on-surface-variant/60 mt-2">{searchQuery ? 'Intenta con otros términos' : 'Agrega un cliente para comenzar'}</p>
               </div>
-            ) : clientsDB.data.map((client: any) => (
+            ) : filteredClients.map((client: any) => (
               <div 
                 key={client.id} 
                 onClick={() => handleSelectClient(client)}

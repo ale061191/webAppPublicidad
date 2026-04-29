@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, RefreshCw, Building2, ShoppingBag, Store, Radio, MoreVertical, AlertTriangle, CheckCircle, X, Power, Trash2, Edit, Eye, Users, ArrowLeft, Play, PlusCircle, FileVideo, FileImage, GripVertical, Clock, Zap, ListVideo, Copy, ExternalLink, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, RefreshCw, Building2, ShoppingBag, Store, Radio, MoreVertical, AlertTriangle, CheckCircle, X, Power, Trash2, Edit, Eye, Users, ArrowLeft, Play, PlusCircle, FileVideo, FileImage, GripVertical, Clock, Zap, ListVideo, Copy, ExternalLink, FileSpreadsheet, Search } from 'lucide-react';
 import { View } from '../../types';
 import { useDB } from '../../lib/hooks';
 
@@ -144,6 +144,17 @@ function TotemForm({ onClose, totem, onSave }: { onClose: () => void; totem?: an
 function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void; onNew?: () => void; onSelect?: (totem: any) => void }) {
   const totemsDB = useDB('totems');
   const totems = totemsDB.data;
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredTotems = useMemo(() => {
+    if (!searchQuery.trim()) return totems || [];
+    const query = searchQuery.toLowerCase();
+    return (totems || []).filter((totem: any) => 
+      totem.name?.toLowerCase().includes(query) ||
+      totem.serial?.toLowerCase().includes(query) ||
+      totem.location?.toLowerCase().includes(query)
+    );
+  }, [totems, searchQuery]);
 
   const handleSave = async (id: number, data: any) => {
     if (id) {
@@ -167,6 +178,16 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
           <h2 className="font-headline text-4xl font-light text-on-surface tracking-tight">Red de <span className="font-extrabold text-primary">Tótems</span></h2>
         </div>
         <div className="flex gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+            <input
+              type="text"
+              placeholder="Buscar tótem..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-surface-container-high border border-outline-variant rounded-lg text-sm w-64"
+            />
+          </div>
           <button onClick={onNew}
             className="px-6 py-2.5 bg-primary/10 border border-primary/30 font-label text-[10px] uppercase tracking-widest text-primary hover:bg-primary/20 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(117,255,158,0.1)]">
             <Plus className="w-4 h-4" /> Nuevo Tótem
@@ -215,7 +236,7 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
               <p className="text-on-surface-variant">No hay tótems registrados</p>
               <p className="text-[10px] text-on-surface-variant/60 mt-2">Agrega un nuevo tótem para comenzar</p>
             </div>
-          ) : totems.map((totem: any) => (
+          ) : filteredTotems.map((totem: any) => (
             <div 
               key={totem.id} 
               onClick={() => onSelect?.(totem)}

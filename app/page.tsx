@@ -71,12 +71,7 @@ function Sidebar() {
       </nav>
 
       <div className="px-6 mt-auto">
-        <button className="w-full py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold font-label text-[10px] uppercase tracking-widest rounded-lg hover:brightness-110 transition-all active:scale-95 shadow-[0_0_20px_rgba(117,255,158,0.2)] flex items-center justify-center gap-2">
-          <Plus className="w-4 h-4" />
-          Desplegar Nuevo Tótem
-        </button>
-        
-        <div className="flex items-center mt-8 p-3 bg-white/5 rounded-xl border border-white/5">
+        <div className="flex items-center p-3 glass-card rounded-xl">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
             {getInitials(profile.displayName)}
           </div>

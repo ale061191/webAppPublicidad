@@ -163,11 +163,20 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
     );
   }, [totems, searchQuery]);
 
+  console.log('[TotemsList] totems:', totems);
+  console.log('[TotemsList] totemsDB.loading:', totemsDB.loading);
+
   const handleSave = async (id: number, data: any) => {
-    if (id) {
-      await totemsDB.update(id, data);
-    } else {
-      await totemsDB.create(data);
+    console.log('[TotemsList] handleSave called, id:', id, 'data:', data);
+    try {
+      if (id) {
+        await totemsDB.update(id, data);
+      } else {
+        await totemsDB.create(data);
+      }
+      console.log('[TotemsList] Save completed');
+    } catch (error) {
+      console.error('[TotemsList] Save error:', error);
     }
   };
 
@@ -330,11 +339,21 @@ export default function Totems() {
     if (updatedTotem) setSelectedTotem(updatedTotem);
   }, [totemsDB.data, selectedTotem?.id]);
 
+  console.log('[Totems] totemsDB.data:', totemsDB.data);
+  console.log('[Totems] totemsDB.error:', totemsDB.error);
+
   const handleSave = async (id: number, data: any) => {
-    if (id) {
-      await totemsDB.update(id, data);
-    } else {
-      await totemsDB.create(data);
+    console.log('[Totems] handleSave called, id:', id, 'data:', data);
+    try {
+      if (id) {
+        await totemsDB.update(id, data);
+      } else {
+        await totemsDB.create(data);
+      }
+      console.log('[Totems] Save completed');
+    } catch (error) {
+      console.error('[Totems] Save error:', error);
+      alert('Error al guardar: ' + error);
     }
   };
 

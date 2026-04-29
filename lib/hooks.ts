@@ -28,8 +28,13 @@ export function useDB(table: string) {
   }, [fetch]);
 
   const create = async (item: any) => {
+    console.log(`[useDB] Creating in ${table}:`, item);
     const { data: result, error: createError } = await supabase.from(table).insert(item).select();
-    if (createError) throw createError;
+    if (createError) {
+      console.error(`[useDB] Create error:`, createError);
+      throw createError;
+    }
+    console.log(`[useDB] Create result:`, result);
     await fetch();
     return result?.[0];
   };

@@ -17,6 +17,7 @@ export default function DisplayPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [loadedCode, setLoadedCode] = useState<string>('000000');
+  const [heartbeatSent, setHeartbeatSent] = useState(false);
   
   const settingsDB = useDB('system_settings');
   
@@ -127,6 +128,7 @@ export default function DisplayPage() {
       });
       const result = await response.json();
       console.log('[Display] Heartbeat response:', result);
+      setHeartbeatSent(true);
     } catch (e) {
       console.log('[Display] Heartbeat error:', e);
     }
@@ -306,6 +308,30 @@ export default function DisplayPage() {
           setTimeout(() => setCurrentIndex((prev) => (prev + 1) % playlist.length), 3000);
         }}
       />
+      
+      <div style={{
+        position: 'fixed',
+        top: 16,
+        left: 16,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '6px 12px',
+        backgroundColor: heartbeatSent ? 'rgba(0,255,0,0.3)' : 'rgba(255,0,0,0.3)',
+        borderRadius: 20,
+        fontSize: 12,
+        color: '#fff'
+      }}>
+        <div style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          backgroundColor: heartbeatSent ? '#0f0' : '#f00',
+          animation: heartbeatSent ? 'pulse 1s infinite' : 'none'
+        }} />
+        {heartbeatSent ? 'Conectado' : 'Sin conexión'}
+      </div>
       
       <div style={{
         position: 'fixed',

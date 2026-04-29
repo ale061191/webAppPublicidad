@@ -109,12 +109,33 @@ export default function DisplayPage() {
     console.log('[Display] Input code:', code, 'Expected:', loadedCode);
     if (code === loadedCode) {
       setDisplayState('playing');
+      sendHeartbeat();
       setError('');
     } else {
       setError('Código incorrecto');
       setCode('');
     }
   };
+
+  const sendHeartbeat = async () => {
+    try {
+      await fetch('/api/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ totemId, timestamp: new Date().toISOString() })
+      });
+    } catch (e) {
+      console.log('[Display] Heartbeat error:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (displayState === 'playing') {
+      sendHeartbeat();
+      const interval = setInterval(sendHeartbeat, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [displayState]);
   
   useEffect(() => {
     if (!isPlaying || playlist.length === 0) return;

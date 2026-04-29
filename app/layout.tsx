@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ModalProvider } from '@/components/ModalContext';
 
 export const metadata: Metadata = {
   title: 'Voltaje Plus - Sistema de Gestión',
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        {children}
+        <ModalProvider>
+          {children}
+        </ModalProvider>
       </body>
     </html>
   );

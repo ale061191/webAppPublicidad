@@ -146,6 +146,13 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
   const totems = totemsDB.data;
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      totemsDB.refresh();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const filteredTotems = useMemo(() => {
     if (!searchQuery.trim()) return totems || [];
     const query = searchQuery.toLowerCase();

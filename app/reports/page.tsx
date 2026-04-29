@@ -20,6 +20,20 @@ const navItems = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const [profile, setProfile] = useState({ displayName: 'Admin Root', email: 'admin@voltaje.plus' });
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('voltaje_profile');
+    if (savedProfile) setProfile(JSON.parse(savedProfile));
+    const handleProfileUpdate = () => {
+      const updated = localStorage.getItem('voltaje_profile');
+      if (updated) setProfile(JSON.parse(updated));
+    };
+    window.addEventListener('profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('profile-updated', handleProfileUpdate);
+  }, []);
+
+  const getInitials = (name: string) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'A';
   
   return (
     <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
@@ -53,6 +67,18 @@ function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-6 mt-auto">
+        <div className="flex items-center p-3 glass-card rounded-xl">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+            {getInitials(profile.displayName)}
+          </div>
+          <div className="ml-3 overflow-hidden">
+            <p className="text-xs font-bold truncate">{profile.displayName}</p>
+            <p className="text-[10px] text-on-surface-variant font-mono">{profile.email}</p>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 }

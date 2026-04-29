@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, FileVideo, FileImage, ListVideo, Download, FileSpreadsheet, BarChart3, PieChart, TrendingUp, TrendingDown, Calendar, Clock, Play, Pause, Eye, DollarSign, MonitorPlay, Activity } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, FileVideo, FileImage, ListVideo, Download, FileSpreadsheet, BarChart3, PieChart, TrendingUp, TrendingDown, Calendar, Clock, Play, Pause, Eye, DollarSign, MonitorPlay, Activity, FileCheck } from 'lucide-react';
 import { View } from '@/types';
 import { useDB } from '@/lib/hooks';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area } from 'recharts';
@@ -292,6 +292,21 @@ export default function ReportsPage() {
               <h1 className="font-headline text-4xl font-light text-on-surface tracking-tight">Reportes <span className="font-extrabold text-primary">Globales</span></h1>
             </div>
             <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const allData = [
+                    ...clientsWithMedia,
+                    ...totemsWithPlaylist,
+                    ...mediaList,
+                    ...playlistItemsList
+                  ];
+                  if (allData.length > 0) exportToCSV(allData, 'reporte_global');
+                }}
+                className="px-4 py-2 bg-primary text-black font-bold text-sm rounded-lg hover:brightness-110 flex items-center gap-2"
+              >
+                <FileCheck className="w-4 h-4" />
+                Exportar Todo
+              </button>
               <select 
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}

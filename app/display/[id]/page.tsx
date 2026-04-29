@@ -3,31 +3,63 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useDB } from '@/lib/hooks';
-import { Play, Pause, Monitor, Lock, Clock, RefreshCw, AlertCircle, Maximize2, Minimize2 } from 'lucide-react';
+import { Play, Pause, Monitor, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 
 type DisplayState = 'enter_code' | 'playing' | 'error';
 
 export default function DisplayPage() {
   const params = useParams();
   const totemId = parseInt(params.id as string);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   
   const [displayState, setDisplayState] = useState<DisplayState>('enter_code');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [loadedCode, setLoadedCode] = useState<string>('000000');
   
   const settingsDB = useDB('system_settings');
-  const displayCode = useMemo(() => {
-    if (settingsDB.data) {
+  
+  useEffect(() => {
+    console.log('[Display] settingsDB.loading:', settingsDB.loading);
+    console.log('[Display] settingsDB.data:', settingsDB.data);
+    
+    if (settingsDB.data && settingsDB.data.length > 0) {
       const found = settingsDB.data.find((s: any) => s.key === 'display_code');
-      if (found?.value) return found.value;
+      console.log('[Display] Found code:', found?.value);
+      if (found?.value) {
+        setLoadedCode(found.value);
+        return;
+      }
     }
-    return localStorage.getItem('voltaje_display_code') || '000000';
-  }, [settingsDB.data]);
+    
+    const localCode = localStorage.getItem('voltaje_display_code');
+    console.log('[Display] Local code:', localCode);
+    if (localCode) {
+      setLoadedCode(localCode);
+    }
+  }, [settingsDB.data, settingsDB.loading]);
+  
+  useEffect(() => {
+    try {
+      const doc = document as any;
+      if (doc.screen?.orientation?.lock) {
+        doc.screen.orientation.lock('portrait').catch(() => {});
+      }
+    } catch (e) {}
+  }, []);
+  
+  useEffect(() => {
+    const preventRotation = (e: Event) => {
+      e.preventDefault();
+    };
+    document.addEventListener('orientationchange', preventRotation);
+    window.addEventListener('orientationchange', preventRotation);
+    return () => {
+      document.removeEventListener('orientationchange', preventRotation);
+      window.removeEventListener('orientationchange', preventRotation);
+    };
+  }, []);
   
   const playlistDB = useDB('playlist_items');
   
@@ -74,7 +106,8 @@ export default function DisplayPage() {
   
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code === displayCode) {
+    console.log('[Display] Input code:', code, 'Expected:', loadedCode);
+    if (code === loadedCode) {
       setDisplayState('playing');
       setError('');
     } else {
@@ -90,26 +123,19 @@ export default function DisplayPage() {
     }, (currentItem?.duration_secs || 10) * 1000);
     return () => clearTimeout(timer);
   }, [currentIndex, isPlaying, playlist.length, currentItem?.duration_secs]);
-  
-  const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      await document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
-  
+
   if (displayState === 'enter_code') {
     return (
       <html lang="es">
         <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
           <meta name="mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <meta name="theme-color" content="#000000" />
+          <meta name="screen-orientation" content="portrait" />
+          <meta name="orientation" content="portrait" />
+          <style>{`@media screen and (orientation: landscape) { html { transform: rotate(90deg); } }`}</style>
         </head>
         <body style={{ margin: 0, padding: 0, backgroundColor: '#000', overflow: 'hidden' }}>
           <div style={{ 
@@ -225,7 +251,6 @@ export default function DisplayPage() {
   
   return (
     <div 
-      ref={containerRef}
       style={{ 
         width: '100vw', 
         height: '100vh', 
@@ -239,7 +264,6 @@ export default function DisplayPage() {
       }}
     >
       <video
-        ref={videoRef}
         key={currentMedia?.id}
         src={currentMedia?.url}
         autoPlay

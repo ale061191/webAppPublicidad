@@ -166,11 +166,18 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
 
   const handleSave = async (id: number, data: any) => {
     console.log('[TotemsList] handleSave called, id:', id, 'data:', data);
+    const cleanData = {
+      name: data.name,
+      serial: data.serial,
+      location: data.location,
+      status: data.status
+    };
+    console.log('[TotemsList] cleanData:', cleanData);
     try {
       if (id) {
-        await totemsDB.update(id, data);
+        await totemsDB.update(id, cleanData);
       } else {
-        await totemsDB.create(data);
+        await totemsDB.create(cleanData);
       }
       console.log('[TotemsList] Save completed');
     } catch (error) {
@@ -342,11 +349,18 @@ export default function Totems() {
 
   const handleSave = async (id: number, data: any) => {
     console.log('[Totems] handleSave called, id:', id, 'data:', data);
+    const cleanData = {
+      name: data.name,
+      serial: data.serial,
+      location: data.location,
+      status: data.status
+    };
+    console.log('[Totems] cleanData:', cleanData);
     try {
       if (id) {
-        await totemsDB.update(id, data);
+        await totemsDB.update(id, cleanData);
       } else {
-        await totemsDB.create(data);
+        await totemsDB.create(cleanData);
       }
       console.log('[Totems] Save completed');
     } catch (error) {

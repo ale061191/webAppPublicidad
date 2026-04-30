@@ -403,15 +403,6 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                       </div>
                     ) : (
                       <img
-                        key={item.url}
-                        src={item.url}
-                        alt={item.name}
-                        alt={item.name}
-                        className="w-full h-full absolute inset-0"
-                      />
-                    ) : (
-                      <img
-                        key={item.url}
                         src={item.url}
                         alt={item.name}
                         className="w-full h-full object-cover absolute inset-0"

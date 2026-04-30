@@ -177,10 +177,10 @@ export default function ReportsPage() {
   
   const [dateRange, setDateRange] = useState('30');
   
-  const totalClients = clientsDB.data?.length || 0;
+const totalClients = clientsDB.data?.length || 0;
   const activeClients = clientsDB.data?.filter((c: any) => c.is_active).length || 0;
   const totalTotems = totemsDB.data?.length || 0;
-  const activeTotems = totemsDB.data?.filter((t: any) => t.status === 'online').length || 0;
+  const connectedTotems = totemsDB.data?.filter((t: any) => t.is_display_connected).length || 0;
   const totalMedia = mediaDB.data?.length || 0;
   const videosMedia = mediaDB.data?.filter((m: any) => m.type === 'video').length || 0;
   const imagesMedia = mediaDB.data?.filter((m: any) => m.type === 'image').length || 0;
@@ -193,13 +193,13 @@ export default function ReportsPage() {
       { name: 'Inactivos', value: totalClients - activeClients },
     ];
   }, [activeClients, totalClients]);
-  
+
   const totemsByStatus = useMemo(() => {
     return [
-      { name: 'Online', value: activeTotems },
-      { name: 'Offline', value: totalTotems - activeTotems },
+      { name: 'Conectados', value: connectedTotems },
+      { name: 'Desconectados', value: totalTotems - connectedTotems },
     ];
-  }, [activeTotems, totalTotems]);
+  }, [connectedTotems, totalTotems]);
   
   const mediaByType = useMemo(() => {
     return [
@@ -236,7 +236,7 @@ export default function ReportsPage() {
         Nombre: totem.name,
         Serial: totem.serial || '',
         Ubicación: totem.location || '',
-        Estado: totem.status === 'online' ? 'Online' : 'Offline',
+        Estado: totem.is_display_connected ? 'Conectado' : 'Desconectado',
         'Items en Playlist': items.length,
         'Items Activos': items.filter((p: any) => p.is_active).length,
         'Duración Total (s)': items.reduce((acc, p) => acc + (p.duration_secs || 10), 0),

@@ -5,8 +5,17 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+async function markStaleDisconnected() {
+  await supabase
+    .from('totems')
+    .update({ is_display_connected: false })
+    .or('last_heartbeat.lt.now()-20 seconds,last_heartbeat.is.null');
+}
+
 export async function GET() {
   try {
+    await markStaleDisconnected();
+    
     const { data: totems } = await supabase
       .from('totems')
       .select('id, name, is_display_connected, last_heartbeat');

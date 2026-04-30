@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useDB } from '@/lib/hooks';
+import { supabase } from '@/lib/supabase';
 import { Play, Pause, Monitor, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 
 type DisplayState = 'enter_code' | 'playing' | 'error';
@@ -71,18 +72,24 @@ export default function DisplayPage() {
   useEffect(() => {
     if (displayState === 'playing') {
       const checkPlaylistUpdate = async () => {
-        await playlistDB.refresh();
-        await totemsDB.refresh();
-        const totem = totemsDB.data?.find((t: any) => t.id === totemId);
-        if (totem?.playlist_updated_at && totem.playlist_updated_at !== lastPlaylistUpdate) {
-          setLastPlaylistUpdate(totem.playlist_updated_at);
-          setCurrentIndex(0);
+        try {
+          const { data: totem } = await supabase.from('totems').select('playlist_updated_at').eq('id', totemId).single();
+          
+          if (totem?.playlist_updated_at && totem.playlist_updated_at !== lastPlaylistUpdate) {
+            console.log('[Display] Playlist update detected:', totem.playlist_updated_at);
+            await playlistDB.refresh();
+            setLastPlaylistUpdate(totem.playlist_updated_at);
+            setCurrentIndex(0);
+          }
+        } catch (e) {
+          console.error('[Display] Failed to check playlist updates:', e);
         }
       };
+      
       const interval = setInterval(checkPlaylistUpdate, 10000);
       return () => clearInterval(interval);
     }
-  }, [displayState, totemId, lastPlaylistUpdate]);
+  }, [displayState, totemId, lastPlaylistUpdate, playlistDB]);
   
   const playlist = useMemo(() => {
     if (!playlistDB.data) return [];

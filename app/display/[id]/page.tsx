@@ -75,10 +75,16 @@ export default function DisplayPage() {
         try {
           const { data: totem } = await supabase.from('totems').select('playlist_updated_at').eq('id', totemId).single();
           
-          if (totem?.playlist_updated_at && totem.playlist_updated_at !== lastPlaylistUpdate) {
-            console.log('[Display] Playlist update detected:', totem.playlist_updated_at);
+          const needsUpdate = !lastPlaylistUpdate || (totem?.playlist_updated_at && totem.playlist_updated_at !== lastPlaylistUpdate);
+          
+          if (needsUpdate) {
+            console.log('[Display] Checking playlist update, last:', lastPlaylistUpdate, 'db:', totem?.playlist_updated_at);
             await playlistDB.refresh();
-            setLastPlaylistUpdate(totem.playlist_updated_at);
+            if (totem?.playlist_updated_at) {
+              setLastPlaylistUpdate(totem.playlist_updated_at);
+            } else {
+              setLastPlaylistUpdate('initialized');
+            }
             setCurrentIndex(0);
           }
         } catch (e) {
@@ -86,10 +92,11 @@ export default function DisplayPage() {
         }
       };
       
+      checkPlaylistUpdate();
       const interval = setInterval(checkPlaylistUpdate, 10000);
       return () => clearInterval(interval);
     }
-  }, [displayState, totemId, lastPlaylistUpdate, playlistDB]);
+  }, [displayState, totemId, playlistDB]);
   
   const playlist = useMemo(() => {
     if (!playlistDB.data) return [];

@@ -129,8 +129,6 @@ const sendHeartbeat = async () => {
       if (result.success) {
         setHeartbeatSent(true);
         setLastPing(new Date().toLocaleTimeString());
-      } else {
-        setHeartbeatSent(false);
       }
     } catch (e) {
       setHeartbeatSent(false);
@@ -139,8 +137,8 @@ const sendHeartbeat = async () => {
 
   useEffect(() => {
     if (displayState === 'playing') {
-      const interval = setInterval(sendHeartbeat, 10000);
       sendHeartbeat();
+      const interval = setInterval(sendHeartbeat, 5000);
       return () => clearInterval(interval);
     }
   }, [displayState, totemId]);

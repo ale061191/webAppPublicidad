@@ -6,10 +6,11 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function markStaleDisconnected() {
-  await supabase
+  const { error } = await supabase
     .from('totems')
     .update({ is_display_connected: false })
     .or('last_heartbeat.lt.now()-20 seconds,last_heartbeat.is.null');
+  if (error) console.log('[markStaleDisconnected] error:', error);
 }
 
 export async function GET() {
@@ -20,6 +21,7 @@ export async function GET() {
       .from('totems')
       .select('id, name, is_display_connected, last_heartbeat');
     
+    console.log('[Heartbeat GET] totems:', totems);
     return NextResponse.json({ totems: totems || [] });
   } catch (error) {
     console.error('[Heartbeat GET error]:', error);
@@ -36,8 +38,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'totemId requerido' }, { status: 400 });
     }
 
-    console.log('[Heartbeat POST] totemId:', totemId, 'timestamp:', timestamp);
-
     const { error } = await supabase
       .from('totems')
       .update({
@@ -47,14 +47,14 @@ export async function POST(request: NextRequest) {
       .eq('id', totemId);
 
     if (error) {
-      console.error('[Heartbeat] Error:', error);
+      console.error('[Heartbeat POST] Error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log('[Heartbeat] Success for totem:', totemId);
+    console.log('[Heartbeat POST] Success for totem:', totemId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Heartbeat API error]:', error);
+    console.error('[Heartbeat POST error]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -322,7 +322,7 @@ const totalClients = clientsDB.data?.length || 0;
           
           <div className="grid grid-cols-4 gap-6">
             <StatCard title="Total Clientes" value={totalClients} subtitle={`${activeClients} activos`} icon={Users} color="green" />
-            <StatCard title="Total Tótems" value={totalTotems} subtitle={`${activeTotems} online`} icon={Monitor} color="blue" />
+            <StatCard title="Total Tótems" value={totalTotems} subtitle={`${connectedTotems} conectados`} icon={Monitor} color="blue" />
             <StatCard title="Multimedia" value={totalMedia} subtitle={`${videosMedia} videos, ${imagesMedia} imágenes`} icon={FileVideo} color="blue" />
             <StatCard title="Playlist Items" value={totalPlaylistItems} subtitle={`${activePlaylistItems} activos`} icon={ListVideo} color="yellow" />
           </div>

@@ -405,8 +405,35 @@ const sendHeartbeat = async () => {
             padding: 8,
             cursor: 'pointer'
           }}
+          title="Recargar"
         >
           <RefreshCw style={{ width: 20, height: 20, color: '#fff' }} />
+        </button>
+        <button
+          onClick={async () => {
+            try {
+              const { data: totem } = await supabase.from('totems').select('playlist_updated_at').eq('id', totemId).single();
+              if (totem?.playlist_updated_at) {
+                await playlistDB.refresh();
+                setLastPlaylistUpdate(totem.playlist_updated_at);
+                setCurrentIndex(0);
+              }
+            } catch (e) {
+              console.error('Sync failed:', e);
+            }
+          }}
+          style={{
+            backgroundColor: 'rgba(117,255,158,0.3)',
+            border: 'none',
+            borderRadius: '50%',
+            padding: 8,
+            cursor: 'pointer'
+          }}
+          title="Sincronizar Playlist"
+        >
+          <svg style={{ width: 20, height: 20, color: '#75ff9e' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
         </button>
         <button
           onClick={() => setDisplayState('enter_code')}
@@ -417,6 +444,7 @@ const sendHeartbeat = async () => {
             padding: 8,
             cursor: 'pointer'
           }}
+          title="Bloquear"
         >
           <Lock style={{ width: 20, height: 20, color: '#fff' }} />
         </button>

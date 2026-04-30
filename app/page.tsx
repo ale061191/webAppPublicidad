@@ -174,25 +174,45 @@ function Login({ onLogin }: { onLogin: () => void }) {
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const pathname = usePathname();
-  
+  const [stats, setStats] = useState({
+    totalClients: 0,
+    totalMedia: 0,
+    activeMedia: 0,
+    totalTotems: 0,
+    connectedTotems: 0,
+    disconnectedTotems: 0,
+    totalPlaylistItems: 0,
+    activePlaylistItems: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/dashboard');
+        const data = await res.json();
+        setStats(data);
+      } catch (e) {
+        console.error('[Dashboard] Failed to fetch stats:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const totemsData = useDB('totems');
-  const mediaData = useDB('media');
-  const playlistData = useDB('playlists');
   const clientsData = useDB('clients');
-  
   const totems = totemsData.data;
   const clients = clientsData.data;
-  const media = mediaData.data;
-  const playlists = playlistData.data;
   
-  const onlineTotems = totems.filter((t: any) => t.status === 'online').length;
-  const activeMedia = media.filter((m: any) => m.isActive).length;
-  
-  const stats = [
-    { label: 'Tótems Activos', value: onlineTotems.toString(), change: '+' + onlineTotems, icon: Monitor, progress: Math.round((onlineTotems / (totems.length || 1)) * 100) },
-    { label: 'Salud de la Red', value: totems.length > 0 ? Math.round((onlineTotems / totems.length) * 100) + '%' : '0%', change: 'Óptimo', icon: Activity, type: 'bars' },
-    { label: 'Archivos Multimedia', value: media.length.toString(), change: '+' + activeMedia, icon: Bolt, type: 'points' },
-    { label: 'Playlists', value: playlists.length.toString(), change: 'Activas', icon: LayoutDashboard, progress: Math.round((playlists.length / (media.length || 1)) * 100), critical: playlists.length === 0 },
+  const kpis = [
+    { label: 'Tótems Conectados', value: stats.connectedTotems.toString(), change: '+' + stats.connectedTotems, icon: Monitor, progress: stats.totalTotems > 0 ? Math.round((stats.connectedTotems / stats.totalTotems) * 100) : 0 },
+    { label: 'Salud de la Red', value: stats.totalTotems > 0 ? Math.round((stats.connectedTotems / stats.totalTotems) * 100) + '%' : '0%', change: 'Óptimo', icon: Activity, type: 'bars', progress: stats.totalTotems > 0 ? Math.round((stats.connectedTotems / stats.totalTotems) * 100) : 0 },
+    { label: 'Archivos Multimedia', value: stats.totalMedia.toString(), change: '+' + stats.activeMedia + ' activos', icon: Bolt, type: 'points' },
+    { label: 'Playlist Items', value: stats.activePlaylistItems.toString(), change: 'Activos', icon: LayoutDashboard, progress: stats.totalPlaylistItems > 0 ? Math.round((stats.activePlaylistItems / stats.totalPlaylistItems) * 100) : 0, critical: stats.activePlaylistItems === 0 },
   ];
 
   const getTitle = () => {
@@ -226,21 +246,21 @@ export default function Home() {
           </section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((kpi, i) => (
+            {kpis.map((kpi, i) => (
               <div key={i} className={`glass-card p-6 rounded-lg border-l-4 ${kpi.critical ? 'border-error' : 'border-primary'} shadow-[0_0_32px_rgba(117,255,158,0.02)] relative overflow-hidden group`}>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                   <kpi.icon className="w-10 h-10" />
                 </div>
                 <p className="font-label text-xs uppercase tracking-widest text-on-surface-variant mb-4">{kpi.label}</p>
                 <div className="flex items-end justify-between">
-                  <span className="font-headline text-4xl font-bold text-on-surface">{kpi.value}</span>
+                  <span className="font-headline text-4xl font-bold text-on-surface">{loading ? '...' : kpi.value}</span>
                   <span className={`font-label text-xs font-bold px-2 py-1 rounded ${kpi.critical ? 'text-error bg-error/10' : 'text-primary bg-primary/10'}`}>
                     {kpi.change}
                   </span>
                 </div>
                 <div className="mt-4 h-1 w-full bg-white/5 overflow-hidden">
-                  {kpi.progress && (
-                    <div className={`h-full ${kpi.critical ? 'bg-error' : 'bg-primary'}`} style={{ width: `${kpi.progress}%` }}></div>
+                  {(kpi.progress ?? 0) > 0 && !loading && (
+                    <div className={`h-full ${kpi.critical ? 'bg-error' : 'bg-primary'}`} style={{ width: `${kpi.progress ?? 0}%` }}></div>
                   )}
                 </div>
               </div>

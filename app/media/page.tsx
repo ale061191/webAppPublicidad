@@ -390,7 +390,7 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                 <p className="text-[10px] text-primary/60 mt-4 font-mono">[DEBUG: {media.length} items in DB]</p>
               </div>
             ) : filteredMedia.map((item: any) => (
-              <div key={item.id} className="glass-card rounded-xl min-h-[350px] flex flex-col">
+              <div key={item.id} className="glass-card rounded-xl min-h-[350px] flex flex-col hover:-translate-y-1 hover:shadow-lg transition-all">
                 <div className="flex-1 relative min-h-[250px]">
                   {item.url ? (
                     item.type === 'video' ? (

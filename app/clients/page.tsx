@@ -225,7 +225,7 @@ export default function Clients() {
               <div 
                 key={client.id} 
                 onClick={() => handleSelectClient(client)}
-                className="glass-card p-6 rounded-xl hover:bg-surface-container-low/40 transition-all cursor-pointer"
+                className="glass-card p-6 rounded-xl hover:bg-surface-container-low/40 transition-all cursor-pointer hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">

@@ -269,7 +269,7 @@ export default function PlaylistsDashboard() {
                                   onDragStart={(e) => handleDragStart(e, item)}
                                   onDragOver={handleDragOver}
                                   onDrop={(e) => handleDrop(e, item)}
-                                  className={`p-3 flex items-center gap-3 hover:bg-surface-container-low cursor-move ${draggedItem?.id === item.id ? 'opacity-50' : ''}`}
+                                  className={`p-3 flex items-center gap-3 hover:bg-surface-container-low cursor-move hover:-translate-y-1 hover:shadow-md transition-all ${draggedItem?.id === item.id ? 'opacity-50' : ''}`}
                                 >
                                   <GripVertical className="w-4 h-4 text-on-surface-variant/40 cursor-grab flex-shrink-0" />
                                   <span className="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-xs font-bold">

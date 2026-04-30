@@ -6,20 +6,33 @@ interface VideoPlayerProps {
   url: string;
   name?: string;
   className?: string;
+  autoPlay?: boolean;
 }
 
-export function VideoPlayer({ url, className = '' }: VideoPlayerProps) {
+export function VideoPlayer({ url, className = '', autoPlay = true }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [httpStatus, setHttpStatus] = useState<number | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    // Reset states when URL changes
     setError(null);
     setLoading(true);
     setHttpStatus(null);
   }, [url]);
+
+  useEffect(() => {
+    if (!autoPlay && videoRef.current) {
+      if (isHovered) {
+        videoRef.current.play().catch(err => {
+          console.warn('Hover play blocked:', err);
+        });
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isHovered, autoPlay]);
 
   const checkNetworkIssue = async () => {
     try {
@@ -34,9 +47,13 @@ export function VideoPlayer({ url, className = '' }: VideoPlayerProps) {
   };
 
   return (
-    <div className={`relative w-full h-full bg-black flex items-center justify-center overflow-hidden ${className}`}>
+    <div 
+      className={`relative w-full h-full bg-black flex items-center justify-center overflow-hidden ${className}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {loading && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center z-10 bg-black/60">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center z-10 bg-black/60 pointer-events-none">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2"></div>
           <span className="text-primary text-[10px] font-mono tracking-widest uppercase">Cargando...</span>
         </div>
@@ -62,14 +79,14 @@ export function VideoPlayer({ url, className = '' }: VideoPlayerProps) {
         playsInline
         muted
         loop
-        autoPlay
+        autoPlay={autoPlay}
+        preload="metadata"
         controls={false}
         onLoadedData={() => setLoading(false)}
         onWaiting={() => setLoading(true)}
         onPlaying={() => setLoading(false)}
         onStalled={() => {
           console.warn('[VideoPlayer] Stalled:', url);
-          // Don't set error on stalled, just keep loading true as it might recover
         }}
         onError={(e) => {
           setLoading(false);
@@ -90,7 +107,6 @@ export function VideoPlayer({ url, className = '' }: VideoPlayerProps) {
           if (errorCode !== 2 && errorCode !== 4) {
             setError(`${errorType}: ${errorMessage}`);
           } else {
-             // For Network/Src not supported, let checkNetworkIssue set the specific HTTP error
              setError(`Analizando conexión...`);
           }
         }}

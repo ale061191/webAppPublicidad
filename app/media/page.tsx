@@ -398,6 +398,7 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                         url={item.url}
                         name={item.name}
                         className="w-full h-full absolute inset-0"
+                        autoPlay={false}
                       />
                     ) : (
                       <img

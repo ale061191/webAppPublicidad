@@ -151,15 +151,20 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
     return () => clearInterval(interval);
   }, []);
 
+  const [filterTab, setFilterTab] = useState<'all' | 'connected' | 'disconnected'>('all');
+
   const filteredTotems = useMemo(() => {
-    if (!searchQuery.trim()) return totems || [];
+    let base = totems || [];
+    if (filterTab === 'connected') base = base.filter((t: any) => t.is_display_connected);
+    if (filterTab === 'disconnected') base = base.filter((t: any) => !t.is_display_connected);
+    if (!searchQuery.trim()) return base;
     const query = searchQuery.toLowerCase();
-    return (totems || []).filter((totem: any) => 
+    return base.filter((totem: any) => 
       totem.name?.toLowerCase().includes(query) ||
       totem.serial?.toLowerCase().includes(query) ||
       totem.location?.toLowerCase().includes(query)
     );
-  }, [totems, searchQuery]);
+  }, [totems, filterTab, searchQuery]);
 
   console.log('[TotemsList] totems:', totems);
   console.log('[TotemsList] totemsDB.loading:', totemsDB.loading);
@@ -190,25 +195,6 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
       await totemsDB.remove(id);
     }
   };
-
-  const [filterTab, setFilterTab] = useState<'all' | 'connected' | 'disconnected'>('all');
-
-  const displayTotems = useMemo(() => {
-    const base = totems || [];
-    if (filterTab === 'connected') return base.filter((t: any) => t.is_display_connected);
-    if (filterTab === 'disconnected') return base.filter((t: any) => !t.is_display_connected);
-    return base;
-  }, [totems, filterTab]);
-
-  const filteredTotems = useMemo(() => {
-    if (!searchQuery.trim()) return displayTotems;
-    const query = searchQuery.toLowerCase();
-    return (displayTotems).filter((totem: any) => 
-      totem.name?.toLowerCase().includes(query) ||
-      totem.serial?.toLowerCase().includes(query) ||
-      totem.location?.toLowerCase().includes(query)
-    );
-  }, [displayTotems, searchQuery]);
 
   return (
     <div className="space-y-8">

@@ -172,3 +172,11 @@ CREATE POLICY "Allow all playlists" ON playlists FOR ALL USING (true) WITH CHECK
 - [ ] Commits en `main`: `git log --oneline origin/main -3`
 - [ ] Cambios probados localmente
 - [ ] Documentar cambios en este archivo si hay cambios significativos
+
+---
+
+## Agente IA (Telegram + Gemini 2.5)
+
+**Estado:** Documentación completa en `createAgent.md`
+
+El agente IA permitirá gestionar el sistema desde Telegram con Gemini 2.5 y function calling. Ver archivo dedicado para detalles completos de arquitectura, funciones y comportamiento.

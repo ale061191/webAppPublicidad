@@ -499,12 +499,22 @@ const totemsDB = useDB('totems');
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <div className="glass-card p-4 border-2">
+<div className="glass-card p-4 border-2">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Activity className="w-4 h-4 text-primary" />
-                    Estado de Conexión
+                    Estado de Conexion
                   </h4>
+                  <button 
+                    onClick={async () => { 
+                      await fetch('/api/heartbeat'); 
+                      await totemsDB.refresh(); 
+                      alert('Sincronizado'); 
+                    }}
+                    className="text-xs bg-primary/20 px-2 py-1 rounded hover:bg-primary/30"
+                  >
+                    Sync
+                  </button>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${selectedTotem.is_display_connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>

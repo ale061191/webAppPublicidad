@@ -157,6 +157,7 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
     let base = totems || [];
     if (filterTab === 'connected') base = base.filter((t: any) => t.is_display_connected);
     if (filterTab === 'disconnected') base = base.filter((t: any) => !t.is_display_connected);
+    base = [...base].sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
     if (!searchQuery.trim()) return base;
     const query = searchQuery.toLowerCase();
     return base.filter((totem: any) => 
@@ -291,9 +292,6 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
                   ? 'bg-green-500/5 border-green-500/30 hover:border-green-500/60 hover:shadow-green-500/20' 
                   : 'bg-red-500/5 border-red-500/20 hover:border-red-500/40 hover:shadow-red-500/10'
               }`}>
-              <div className="col-span-1">
-                <input type="checkbox" onClick={(e) => e.stopPropagation()} className="form-checkbox bg-transparent border-outline-variant text-primary focus:ring-0 rounded-none w-5 h-5" />
-              </div>
               <div className="col-span-3">
                 <div className="flex items-center gap-4">
                   <div className="relative">
@@ -324,13 +322,15 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
                   </div>
                 </div>
               </div>
-              <div className="col-span-3">
+              <div className="col-span-2">
                 <div className="flex flex-col gap-1">
-                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">Playlist</span>
-                  <span className="text-xs text-primary">Configurar →</span>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">Creado</span>
+                  <span className="text-xs font-body text-on-surface/80">
+                    {totem.created_at ? new Date(totem.created_at).toLocaleDateString() : 'Sin fecha'}
+                  </span>
                 </div>
               </div>
-              <div className="col-span-1 flex justify-end gap-2">
+              <div className="col-span-2 flex justify-end gap-2">
                 <button onClick={(e) => { e.stopPropagation(); onEdit?.(totem); }} className="p-2 hover:bg-surface-container-highest transition-colors text-on-surface-variant hover:text-primary">
                   <Edit className="w-5 h-5" />
                 </button>

@@ -13,21 +13,29 @@ export function VideoPlayer({ url, className = '', autoPlay = true }: VideoPlaye
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [stalled, setStalled] = useState<boolean>(false);
   const [httpStatus, setHttpStatus] = useState<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     setError(null);
     setLoading(true);
+    setStalled(false);
     setHttpStatus(null);
   }, [url]);
 
   useEffect(() => {
     if (!autoPlay && videoRef.current) {
       if (isHovered) {
-        videoRef.current.play().catch(err => {
-          console.warn('Hover play blocked:', err);
-        });
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            // Ignore AbortError caused by rapid mouse enter/leave
+            if (err.name !== 'AbortError') {
+              console.warn('Play error:', err);
+            }
+          });
+        }
       } else {
         videoRef.current.pause();
       }
@@ -55,7 +63,9 @@ export function VideoPlayer({ url, className = '', autoPlay = true }: VideoPlaye
       {loading && !error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center z-10 bg-black/60 pointer-events-none">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2"></div>
-          <span className="text-primary text-[10px] font-mono tracking-widest uppercase">Cargando...</span>
+          <span className="text-primary text-[10px] font-mono tracking-widest uppercase">
+            {stalled ? 'Conexión Lenta...' : 'Cargando...'}
+          </span>
         </div>
       )}
       
@@ -80,13 +90,15 @@ export function VideoPlayer({ url, className = '', autoPlay = true }: VideoPlaye
         muted
         loop
         autoPlay={autoPlay}
-        preload="metadata"
+        preload={autoPlay ? "metadata" : "none"}
         controls={false}
-        onLoadedData={() => setLoading(false)}
+        onLoadedData={() => { setLoading(false); setStalled(false); }}
         onWaiting={() => setLoading(true)}
-        onPlaying={() => setLoading(false)}
+        onPlaying={() => { setLoading(false); setStalled(false); }}
         onStalled={() => {
           console.warn('[VideoPlayer] Stalled:', url);
+          setStalled(true);
+          setLoading(true);
         }}
         onError={(e) => {
           setLoading(false);

@@ -335,18 +335,18 @@ const totemsDB = useDB('totems');
       try { 
         await fetch('/api/heartbeat');
         await totemsDB.refresh(); 
-      } catch (e) {} 
+      } catch (e) { console.log('Sync error:', e); } 
     };
     syncHeartbeat();
-    const interval = setInterval(syncHeartbeat, 10000);
+    const interval = setInterval(syncHeartbeat, 5000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (!selectedTotem) return;
-    const interval = setInterval(() => {
-      totemsDB.refresh();
-    }, 5000);
+    const interval = setInterval(async () => {
+      await totemsDB.refresh();
+    }, 3000);
     return () => clearInterval(interval);
   }, [selectedTotem]);
 

@@ -16,16 +16,28 @@ export async function GET() {
     ] = await Promise.all([
       supabase.from('clients').select('id'),
       supabase.from('media').select('id, is_active'),
-      supabase.from('totems').select('id, is_display_connected'),
+      supabase.from('totems').select('id, is_display_connected, last_heartbeat'),
       supabase.from('playlist_items').select('id, is_active'),
     ]);
+
+    console.log('[Dashboard API] Totems raw data:', JSON.stringify(totems));
+    console.log('[Dashboard API] Totems error:', totemsError);
 
     if (clientsError || mediaError || totemsError || playlistError) {
       console.error('[Dashboard API] Database errors:', { clientsError, mediaError, totemsError, playlistError });
       throw new Error('Database query failed');
     }
 
-    const connectedTotems = totems?.filter((t: any) => t.is_display_connected) || [];
+    const now = new Date();
+    const connectedTotems = totems?.filter((t: any) => {
+      if (t.is_display_connected === true) return true;
+      if (t.last_heartbeat) {
+        const lastHeartbeat = new Date(t.last_heartbeat);
+        const secondsSince = (now.getTime() - lastHeartbeat.getTime()) / 1000;
+        return secondsSince < 30;
+      }
+      return false;
+    }) || [];
 
     const stats = {
       totalClients: clients?.length || 0,
@@ -38,6 +50,7 @@ export async function GET() {
       activePlaylistItems: playlistItems?.filter((p: any) => p.is_active).length || 0,
     };
 
+    console.log('[Dashboard API] Final stats:', stats);
     return NextResponse.json(stats);
   } catch (error: any) {
     console.error('[Dashboard API] Error:', error);

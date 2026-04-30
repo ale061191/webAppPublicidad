@@ -381,9 +381,9 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredMedia.length === 0 ? (
-              <div className="col-span-4 glass-card p-12 text-center">
+              <div className="col-span-1 md:col-span-3 lg:col-span-4 glass-card p-12 text-center">
                 <Images className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />
                 <p className="text-on-surface-variant">No hay contenido multimedia</p>
                 <p className="text-[10px] text-on-surface-variant/60 mt-2">Sube archivos para comenzar</p>
@@ -397,6 +397,13 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                       <VideoPlayer
                         url={item.url}
                         name={item.name}
+                        className="w-full h-full absolute inset-0"
+                      />
+                    ) : (
+                      <img
+                        key={item.url}
+                        src={item.url}
+                        alt={item.name}
                         className="w-full h-full absolute inset-0"
                       />
                     ) : (

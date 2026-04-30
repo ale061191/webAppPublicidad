@@ -239,7 +239,7 @@ export default function Clients() {
             </div>
           </div>
 
-<div className="grid grid- cols-1 md:grid- cols-2 lg:grid- cols-3 gap-6">
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {currentClients.length === 0 ? (
               <div className="col-span-3 glass- card p-12 text-center">
                 <Users className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, X, FileVideo, FileImage, ListVideo, AlertTriangle, FileSpreadsheet, Search } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Users, Building2, Mail, Phone, MapPin, Trash2, Edit, X, FileVideo, FileImage, ListVideo, AlertTriangle, FileSpreadsheet, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { View } from '../../types';
 import { useDB } from '../../lib/hooks';
 
@@ -63,6 +63,7 @@ function ClientForm({ onClose, client, onSave }: { onClose: () => void; client?:
     email: client?.email || '',
     phone: client?.phone || '',
     address: client?.address || '',
+    rif: client?.rif || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,10 +93,22 @@ function ClientForm({ onClose, client, onSave }: { onClose: () => void; client?:
               className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="Juan Pérez" />
           </div>
           
-          <div>
-            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Nombre de Empresa</label>
+<div>
+            <label className="font-label text-[10px] uppercase tracking- widest text-on-surface-variant block mb-1">Nombre de Empresa</label>
             <input type="text" required value={form.business_name} onChange={(e) => setForm({...form, business_name: e.target.value})}
               className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="Empresa XYZ" />
+          </div>
+           
+          <div>
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">RIF</label>
+            <input type="text" required value={form.rif} onChange={(e) => setForm({...form, rif: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="J-12345678-9" />
+          </div>
+           
+          <div>
+            <label className="font-label text-[10px] uppercase tracking- widest text-on-surface-variant block mb-1">Email</label>
+            <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})}
+              className="w-full bg-surface-container-high border-none text-sm py-2 px-3 focus:ring-1 focus:ring-primary outline-none" placeholder="juan@empresa. com" />
           </div>
           
           <div>
@@ -132,6 +145,8 @@ export default function Clients() {
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const CLIENTS_PER_PAGE = 10;
 
   const clientsDB = useDB('clients');
   const mediaDB = useDB('media');
@@ -139,12 +154,22 @@ export default function Clients() {
   const filteredClients = useMemo(() => {
     if (!searchQuery.trim()) return clientsDB.data || [];
     const query = searchQuery.toLowerCase();
-    return (clientsDB.data || []).filter((client: any) => 
+    return (clientsDB.data || []).filter((client: any) =>
       client.name?.toLowerCase().includes(query) ||
       client.business_name?.toLowerCase().includes(query) ||
-      client.email?.toLowerCase().includes(query)
+      client.email?.toLowerCase().includes(query) ||
+      client.rif?.toLowerCase().includes(query)
     );
   }, [clientsDB.data, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredClients.length / CLIENTS_PER_PAGE));
+  const currentClients = filteredClients.slice((currentPage - 1) * CLIENTS_PER_PAGE, currentPage * CLIENTS_PER_PAGE);
+
+  useMemo(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(Math.max(1, totalPages));
+    }
+  }, [totalPages, currentPage]);
 
   const handleSave = async (id: number, data: any) => {
     if (id) {
@@ -214,14 +239,14 @@ export default function Clients() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClients.length === 0 ? (
-              <div className="col-span-3 glass-card p-12 text-center">
+<div className="grid grid- cols-1 md:grid- cols-2 lg:grid- cols-3 gap-6">
+            {currentClients.length === 0 ? (
+              <div className="col-span-3 glass- card p-12 text-center">
                 <Users className="w-12 h-12 mx-auto text-on-surface-variant/30 mb-4" />
                 <p className="text-on-surface-variant">{searchQuery ? 'No se encontraron resultados' : 'No hay clientes registrados'}</p>
                 <p className="text-[10px] text-on-surface-variant/60 mt-2">{searchQuery ? 'Intenta con otros términos' : 'Agrega un cliente para comenzar'}</p>
               </div>
-            ) : filteredClients.map((client: any) => (
+            ) : currentClients.map((client: any) => (
               <div 
                 key={client.id} 
                 onClick={() => handleSelectClient(client)}
@@ -237,8 +262,9 @@ export default function Clients() {
                   </div>
                 </div>
                 
-                <h3 className="font-headline font-bold text-lg mb-1">{client.business_name}</h3>
-                <p className="font-label text-xs text-on-surface-variant mb-4">{client.name}</p>
+<h3 className="font-headline font-bold text-lg mb-1">{client.business_name}</h3>
+                <p className="font-label text-xs text-on-surface-variant mb-2">{client.name}</p>
+                {client.rif && <p className="font-label text-[9px] text-primary/60 mb-3">RIF: {client.rif}</p>}
                 
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center gap-2 text-on-surface-variant"><Mail className="w-4 h-4" /><span>{client.email}</span></div>
@@ -252,8 +278,45 @@ export default function Clients() {
                   </span>
                 </div>
               </div>
-            ))}
+            ))}  
           </div>
+           
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center pt-4 border-t border-outline-variant/10"> 
+              <div className="font- label text-[10px] uppercase tracking-widest text-on-surface-variant/60">
+                Mostrando {((currentPage - 1) * CLIENTS_PER_PAGE) + 1}-{Math.min(currentPage * CLIENTS_PER_PAGE, filteredClients. length)} de {filteredClients.length}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center bg-surface-container-low text-on-surface-variant hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all rounded"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 flex items-center justify-center text-[10px] font-label font-bold rounded transition-all ${
+                      page === currentPage
+                        ? 'bg-primary text-on-primary'
+                        : 'bg-surface-container-low text-on-surface-variant hover:text-primary'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center bg-surface-container-low text-on-surface-variant hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all rounded"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

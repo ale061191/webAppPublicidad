@@ -122,31 +122,35 @@ export function RevenueChart({ payments = [], clients = [] }: RevenueChartProps)
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-surface-container-low/50 p-4 rounded-lg">
+        <div className="bg-surface-container-low/50 p-4 rounded-lg border-l-4 border-green-500">
           <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="w-4 h-4 text-primary" />
+            <DollarSign className="w-4 h-4 text-green-500" />
             <span className="text-[10px] text-on-surface-variant font-label uppercase">Ingresos Totales</span>
           </div>
-          <p className="font-headline text-2xl font-bold text-on-surface">
+          <p className="font-headline text-2xl font-bold text-green-400">
             ${totalRevenue.toLocaleString('es-MX')}
           </p>
         </div>
-        <div className="bg-surface-container-low/50 p-4 rounded-lg">
+        <div className="bg-surface-container-low/50 p-4 rounded-lg border-l-4 border-yellow-500">
           <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-primary" />
+            <Users className="w-4 h-4 text-yellow-500" />
             <span className="text-[10px] text-on-surface-variant font-label uppercase">Clientes</span>
           </div>
-          <p className="font-headline text-2xl font-bold text-on-surface">
+          <p className="font-headline text-2xl font-bold text-yellow-400">
             {totalClients}
           </p>
         </div>
-        <div className="bg-surface-container-low/50 p-4 rounded-lg">
+        <div className={`bg-surface-container-low/50 p-4 rounded-lg border-l-4 ${trend >= 0 ? 'border-green-500' : 'border-red-500'}`}>
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-primary" />
+            {trend >= 0 ? (
+              <TrendingUp className="w-4 h-4 text-green-500" />
+            ) : (
+              <TrendingDown className="w-4 h-4 text-red-500" />
+            )}
             <span className="text-[10px] text-on-surface-variant font-label uppercase">Tendencia</span>
           </div>
-          <p className="font-headline text-2xl font-bold text-primary">
-            0%
+          <p className={`font-headline text-2xl font-bold ${trend >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {trend >= 0 ? '+' : ''}{trend}%
           </p>
         </div>
       </div>

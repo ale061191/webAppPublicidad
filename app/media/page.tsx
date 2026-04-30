@@ -394,13 +394,11 @@ function MediaPage({ onEdit, onNew }: { onEdit?: (item: any) => void; onNew?: ()
                 <div className="flex-1 relative min-h-[250px]">
                   {item.url ? (
                     item.type === 'video' ? (
-                      <div className="w-full h-full bg-black flex items-center justify-center">
-                        <VideoPlayer
-                          url={item.url}
-                          name={item.name}
-                          className="w-full h-full"
-                        />
-                      </div>
+                      <VideoPlayer
+                        url={item.url}
+                        name={item.name}
+                        className="w-full h-full absolute inset-0"
+                      />
                     ) : (
                       <img
                         src={item.url}

@@ -5,14 +5,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+let lastCheck = 0;
+const CHECK_INTERVAL = 60000;
+
 async function markStaleDisconnected() {
-  const now = new Date();
-  const twentySecondsAgo = new Date(now.getTime() - 20000);
+  const now = Date.now();
+  if (now - lastCheck < CHECK_INTERVAL) return;
+  lastCheck = now;
+  
+  const thirtySecondsAgo = new Date(now - 30000);
   
   const { data: staleTotems } = await supabase
     .from('totems')
     .select('id')
-    .or('last_heartbeat.lt.' + twentySecondsAgo.toISOString() + ',last_heartbeat.is.null')
+    .or('last_heartbeat.lt.' + thirtySecondsAgo.toISOString() + ',last_heartbeat.is.null')
     .eq('is_display_connected', true);
   
   if (staleTotems && staleTotems.length > 0) {
@@ -26,6 +32,8 @@ async function markStaleDisconnected() {
 
 export async function GET() {
   try {
+    await markStaleDisconnected();
+    
     const { data: totems } = await supabase
       .from('totems')
       .select('id, name, is_display_connected, last_heartbeat');

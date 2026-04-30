@@ -191,6 +191,25 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
     }
   };
 
+  const [filterTab, setFilterTab] = useState<'all' | 'connected' | 'disconnected'>('all');
+
+  const displayTotems = useMemo(() => {
+    const base = totems || [];
+    if (filterTab === 'connected') return base.filter((t: any) => t.is_display_connected);
+    if (filterTab === 'disconnected') return base.filter((t: any) => !t.is_display_connected);
+    return base;
+  }, [totems, filterTab]);
+
+  const filteredTotems = useMemo(() => {
+    if (!searchQuery.trim()) return displayTotems;
+    const query = searchQuery.toLowerCase();
+    return (displayTotems).filter((totem: any) => 
+      totem.name?.toLowerCase().includes(query) ||
+      totem.serial?.toLowerCase().includes(query) ||
+      totem.location?.toLowerCase().includes(query)
+    );
+  }, [displayTotems, searchQuery]);
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
@@ -214,6 +233,26 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
             <Plus className="w-4 h-4" /> Nuevo Tótem
           </button>
         </div>
+      </div>
+
+      <div className="flex gap-2 border-b border-outline-variant/20">
+        {(['all', 'connected', 'disconnected'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setFilterTab(tab)}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              filterTab === tab ? 'text-primary' : 'text-on-surface-variant hover:text-primary'
+            }`}
+          >
+            {tab === 'all' ? 'Todos' : tab === 'connected' ? 'Conectados' : 'Desconectados'}
+            <span className="ml-2 text-xs bg-surface-container-high px-1.5 py-0.5 rounded">
+              {tab === 'all' ? totems?.length : tab === 'connected' ? totems?.filter((t: any) => t.is_display_connected).length : totems?.filter((t: any) => !t.is_display_connected).length}
+            </span>
+            {filterTab === tab && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+            )}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-12 gap-6">
@@ -261,17 +300,21 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
             <div 
               key={totem.id} 
               onClick={() => onSelect?.(totem)}
-              className={`grid grid-cols-12 items-center glass-card hover:bg-surface-container-low/40 transition-all px-6 py-6 border border-outline-variant/5 gap-4 cursor-pointer ${totem.status === 'offline' ? 'bg-error/5 border-error/10' : ''}`}>
+              className={`grid grid-cols-12 items-center transition-all px-6 py-4 gap-4 cursor-pointer rounded-lg border-2 hover:-translate-y-1 hover:shadow-lg ${
+                totem.is_display_connected 
+                  ? 'bg-green-500/5 border-green-500/30 hover:border-green-500/60 hover:shadow-green-500/20' 
+                  : 'bg-red-500/5 border-red-500/20 hover:border-red-500/40 hover:shadow-red-500/10'
+              }`}>
               <div className="col-span-1">
                 <input type="checkbox" onClick={(e) => e.stopPropagation()} className="form-checkbox bg-transparent border-outline-variant text-primary focus:ring-0 rounded-none w-5 h-5" />
               </div>
               <div className="col-span-3">
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <div className="h-10 w-10 bg-surface-container-high flex items-center justify-center">
-                      <Monitor className={`w-6 h-6 ${totem.status === 'offline' ? 'text-error/60' : 'text-primary/60'}`} />
+                    <div className="h-10 w-10 bg-surface-container-high flex items-center justify-center rounded-lg">
+                      <Monitor className={`w-6 h-6 ${totem.is_display_connected ? 'text-green-500' : 'text-red-500'}`} />
                     </div>
-                    <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${totem.status === 'offline' ? 'bg-error animate-pulse' : 'bg-primary shadow-[0_0_8px_#75ff9e]'}`}></div>
+                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-surface ${totem.is_display_connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                   </div>
                   <div>
                     <h5 className="text-sm font-headline font-bold text-on-surface tracking-wide">{totem.name}</h5>
@@ -287,10 +330,10 @@ function TotemsList({ onEdit, onNew, onSelect }: { onEdit?: (totem: any) => void
               </div>
               <div className="col-span-2">
                 <div className="flex flex-col gap-1">
-                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">Estado</span>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">Conexión</span>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-label uppercase ${totem.status === 'offline' ? 'text-error font-bold' : 'text-primary'}`}>
-                      {totem.status === 'online' ? 'Activo' : 'Offline'}
+                    <span className={`text-[10px] font-label uppercase ${totem.is_display_connected ? 'text-green-500 font-bold' : 'text-red-500'}`}>
+                      {totem.is_display_connected ? 'Conectado' : 'Desconectado'}
                     </span>
                   </div>
                 </div>

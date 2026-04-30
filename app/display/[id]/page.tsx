@@ -65,6 +65,25 @@ export default function DisplayPage() {
   
   const playlistDB = useDB('playlist_items');
   
+  const [lastPlaylistUpdate, setLastPlaylistUpdate] = useState<string>('');
+  const totemsDB = useDB('totems');
+  
+  useEffect(() => {
+    if (displayState === 'playing') {
+      const checkPlaylistUpdate = async () => {
+        await playlistDB.refresh();
+        await totemsDB.refresh();
+        const totem = totemsDB.data?.find((t: any) => t.id === totemId);
+        if (totem?.playlist_updated_at && totem.playlist_updated_at !== lastPlaylistUpdate) {
+          setLastPlaylistUpdate(totem.playlist_updated_at);
+          setCurrentIndex(0);
+        }
+      };
+      const interval = setInterval(checkPlaylistUpdate, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [displayState, totemId, lastPlaylistUpdate]);
+  
   const playlist = useMemo(() => {
     if (!playlistDB.data) return [];
     return playlistDB.data

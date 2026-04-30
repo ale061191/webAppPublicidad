@@ -452,6 +452,7 @@ const totemsDB = useDB('totems');
         is_active: true,
       });
     }
+    await totemsDB.update(selectedTotem.id, { playlist_updated_at: new Date().toISOString() });
     setShowClientSelector(false);
     setSelectedClientId(null);
   };
@@ -467,12 +468,16 @@ const totemsDB = useDB('totems');
       duration_secs: 10,
       is_active: true,
     });
+    await totemsDB.update(selectedTotem.id, { playlist_updated_at: new Date().toISOString() });
     setShowMediaSelector(false);
   };
 
   const handleRemovePlaylistItem = async (itemId: number) => {
     if (confirm('¿Eliminar este item de la playlist?')) {
       await playlistDB.remove(itemId);
+      if (selectedTotem) {
+        await totemsDB.update(selectedTotem.id, { playlist_updated_at: new Date().toISOString() });
+      }
     }
   };
 

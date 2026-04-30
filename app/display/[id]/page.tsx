@@ -18,6 +18,7 @@ export default function DisplayPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [loadedCode, setLoadedCode] = useState<string>('000000');
   const [heartbeatSent, setHeartbeatSent] = useState(false);
+  const [lastPing, setLastPing] = useState('');
   
   const settingsDB = useDB('system_settings');
   
@@ -105,21 +106,19 @@ export default function DisplayPage() {
     }
   }, [displayState]);
   
-  const handleCodeSubmit = (e: React.FormEvent) => {
+const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Display] Input code:', code, 'Expected:', loadedCode);
     if (code === loadedCode) {
       setDisplayState('playing');
       sendHeartbeat();
       setError('');
     } else {
-      setError('Código incorrecto');
+      setError('Codigo incorrecto');
       setCode('');
     }
   };
 
-  const sendHeartbeat = async () => {
-    console.log('[Display] Sending heartbeat for totem:', totemId);
+const sendHeartbeat = async () => {
     try {
       const response = await fetch('/api/heartbeat', {
         method: 'POST',
@@ -127,18 +126,21 @@ export default function DisplayPage() {
         body: JSON.stringify({ totemId, timestamp: new Date().toISOString() })
       });
       const result = await response.json();
-      console.log('[Display] Heartbeat response:', result);
-      setHeartbeatSent(true);
+      if (result.success) {
+        setHeartbeatSent(true);
+        setLastPing(new Date().toLocaleTimeString());
+      } else {
+        setHeartbeatSent(false);
+      }
     } catch (e) {
-      console.log('[Display] Heartbeat error:', e);
+      setHeartbeatSent(false);
     }
   };
 
   useEffect(() => {
     if (displayState === 'playing') {
-      console.log('[Display] Starting heartbeat for totem:', totemId);
-      sendHeartbeat();
       const interval = setInterval(sendHeartbeat, 10000);
+      sendHeartbeat();
       return () => clearInterval(interval);
     }
   }, [displayState, totemId]);
@@ -309,28 +311,29 @@ export default function DisplayPage() {
         }}
       />
       
-      <div style={{
+<div style={{
         position: 'fixed',
         top: 16,
         left: 16,
-        zIndex: 9999,
+        zIndex: 99,
         display: 'flex',
-        alignItems: 'center',
-        gap: 8,
+        flexDirection: 'column',
+        gap: 4,
         padding: '6px 12px',
         backgroundColor: heartbeatSent ? 'rgba(0,255,0,0.3)' : 'rgba(255,0,0,0.3)',
         borderRadius: 20,
-        fontSize: 12,
+        fontSize: 11,
         color: '#fff'
       }}>
-        <div style={{
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          backgroundColor: heartbeatSent ? '#0f0' : '#f00',
-          animation: heartbeatSent ? 'pulse 1s infinite' : 'none'
-        }} />
-        {heartbeatSent ? 'Conectado' : 'Sin conexión'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            backgroundColor: heartbeatSent ? '#0f0' : '#f00',
+            animation: heartbeatSent ? 'pulse 1s infinite' : 'none'
+          }} />
+          <span>{heartbeatSent ? 'Conectado' : 'Sin conexion'}</span>
+        </div>
+        {lastPing && <div style={{ fontSize: 9, opacity: 0.8 }}>Ping: {lastPing}</div>}
       </div>
       
       <div style={{

@@ -6,22 +6,30 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function markStaleDisconnected() {
-  const { error } = await supabase
+  const now = new Date();
+  const twentySecondsAgo = new Date(now.getTime() - 20000);
+  
+  const { data: staleTotems } = await supabase
     .from('totems')
-    .update({ is_display_connected: false })
-    .or('last_heartbeat.lt.now()-20 seconds,last_heartbeat.is.null');
-  if (error) console.log('[markStaleDisconnected] error:', error);
+    .select('id')
+    .or('last_heartbeat.lt.' + twentySecondsAgo.toISOString() + ',last_heartbeat.is.null')
+    .eq('is_display_connected', true);
+  
+  if (staleTotems && staleTotems.length > 0) {
+    const staleIds = staleTotems.map(t => t.id);
+    await supabase
+      .from('totems')
+      .update({ is_display_connected: false })
+      .in('id', staleIds);
+  }
 }
 
 export async function GET() {
   try {
-    await markStaleDisconnected();
-    
     const { data: totems } = await supabase
       .from('totems')
       .select('id, name, is_display_connected, last_heartbeat');
     
-    console.log('[Heartbeat GET] totems:', totems);
     return NextResponse.json({ totems: totems || [] });
   } catch (error) {
     console.error('[Heartbeat GET error]:', error);

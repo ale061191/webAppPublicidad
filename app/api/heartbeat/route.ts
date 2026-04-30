@@ -5,8 +5,31 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+function markDisconnectedTotems() {
+  return supabase
+    .from('totems')
+    .update({ is_display_connected: false })
+    .or('last_heartbeat.lt.now()-20 seconds,last_heartbeat.is.null');
+}
+
+export async function GET() {
+  try {
+    await markDisconnectedTotems();
+    
+    const { data: totems } = await supabase
+      .from('totems')
+      .select('id, name, is_display_connected, last_heartbeat');
+    
+    return NextResponse.json({ totems: totems || [] });
+  } catch (error) {
+    console.error('Heartbeat GET error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    await markDisconnectedTotems();
     const body = await request.json();
     const { totemId, timestamp } = body;
 

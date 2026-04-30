@@ -325,10 +325,18 @@ export default function Totems() {
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
 
-  const totemsDB = useDB('totems');
+const totemsDB = useDB('totems');
   const clientsDB = useDB('clients');
   const mediaDB = useDB('media');
   const playlistDB = useDB('playlist_items');
+
+  useEffect(() => {
+    const syncHeartbeat = async () => {
+      try { await fetch('/api/heartbeat'); await totemsDB.refresh(); } catch (e) {} };
+    syncHeartbeat();
+    const interval = setInterval(syncHeartbeat, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!selectedTotem) return;

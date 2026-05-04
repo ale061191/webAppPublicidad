@@ -1,12 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft, Users, ListVideo, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Monitor, Images, Settings, Plus, Activity, Bolt, AtSign, LockOpen, ArrowRight, ArrowLeft, Users, ListVideo, FileSpreadsheet, X, AlertTriangle } from 'lucide-react';
 import { View } from '../types';
 import { useDB } from '../lib/hooks';
 import { RevenueChart, TotemHeatmap } from '../components/RevenueCharts';
+
+function EasterEggModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
+      <div className="bg-[#1a1a2e] border border-red-500/50 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-red-500">ADVERTENCIA IMPORTANTE</h2>
+        </div>
+        <p className="text-white/80 text-sm mb-6 leading-relaxed">
+          Este sistema es propiedad único y exclusivo de la agencia de diseño y desarrollo de productos digitales <span className="text-yellow-400 font-bold">NOVA TECH AI</span>.
+        </p>
+        <div className="bg-black/30 rounded-xl p-4 mb-6 space-y-2">
+          <p className="text-white"><span className="text-white/50">Propietario:</span> Ezequiel Alejandro Rodriguez Bracho</p>
+          <p className="text-white"><span className="text-white/50">Cédula:</span> V-19932878</p>
+          <p className="text-white"><span className="text-white/50">Teléfono:</span> +584129850722</p>
+        </div>
+        <p className="text-red-400 text-sm font-medium mb-4">
+          Cualquier uso indebido o inapropiado de este sistema sin mi autorización puede ser y serádemandado legalmente.
+        </p>
+        <button
+          onClick={onClose}
+          className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/80 transition-colors"
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Tablero', href: '/' },
@@ -40,7 +72,7 @@ function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-sidebar w-64 z-50">
       <div className="px-6 mb-12">
-        <h1 className="text-lg font-bold tracking-tight text-primary font-headline leading-tight">VOLTAJE ADS MANAGER</h1>
+        <h1 className="text-[13px] font-bold tracking-tight text-primary font-headline leading-tight">SYSTEM NOVA ADS MANAGER</h1>
         <p className="font-label text-[9px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
       </div>
       
@@ -174,6 +206,8 @@ function Login({ onLogin }: { onLogin: () => void }) {
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const pathname = usePathname();
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
+  const keystrokeBuffer = useRef('');
   const [stats, setStats] = useState({
     totalClients: 0,
     totalMedia: 0,
@@ -203,6 +237,21 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      keystrokeBuffer.current += e.key.toLowerCase();
+      if (keystrokeBuffer.current.length > 20) {
+        keystrokeBuffer.current = keystrokeBuffer.current.slice(-20);
+      }
+      if (keystrokeBuffer.current.includes('novatech')) {
+        setShowEasterEgg(true);
+        keystrokeBuffer.current = '';
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const totemsData = useDB('totems');
   const clientsData = useDB('clients');
   const totems = totemsData.data;
@@ -228,7 +277,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface">
+    <>
+      {showEasterEgg && <EasterEggModal onClose={() => setShowEasterEgg(false)} />}
+      <div className="min-h-screen bg-background text-on-surface">
       <Sidebar />
       <TopBar title={getTitle()} />
       
@@ -281,6 +332,7 @@ export default function Home() {
       >
         <Activity className="w-6 h-6" />
       </Link>
-    </div>
+      </div>
+    </>
   );
 }

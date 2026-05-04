@@ -39,7 +39,7 @@ function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full flex flex-col py-6 glass-panel w-64 border-r border-primary/10 z-50">
       <div className="px-6 mb-12">
-        <h1 className="text-lg font-bold tracking-tight text-primary font-headline leading-tight">VOLTAJE ADS MANAGER</h1>
+        <h1 className="text-[13px] font-bold tracking-tight text-primary font-headline leading-tight">SYSTEM NOVA ADS MANAGER</h1>
         <p className="font-label text-[9px] tracking-widest text-primary/50 uppercase mt-1">Red v2.4</p>
       </div>
       

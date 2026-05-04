@@ -195,6 +195,14 @@ const sendHeartbeat = async () => {
           <meta name="theme-color" content="#000000" />
           <meta name="screen-orientation" content="portrait" />
           <meta name="orientation" content="portrait" />
+          <link rel="manifest" href="/manifest.json" />
+          <script dangerouslySetInnerHTML={{__html: `
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.log('SW failed', err));
+            }
+          `}} />
           <style>{`@media screen and (orientation: landscape) { html { transform: rotate(90deg); } }`}</style>
         </head>
         <body style={{ margin: 0, padding: 0, backgroundColor: '#000', overflow: 'hidden' }}>
@@ -290,6 +298,15 @@ const sendHeartbeat = async () => {
       <html lang="es">
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="theme-color" content="#000000" />
+          <link rel="manifest" href="/manifest.json" />
+          <script dangerouslySetInnerHTML={{__html: `
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js').catch(() => {});
+            }
+          `}} />
         </head>
         <body style={{ margin: 0, padding: 0, backgroundColor: '#000', overflow: 'hidden' }}>
           <div style={{ 

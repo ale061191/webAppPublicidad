@@ -1,0 +1,36 @@
+{
+  "name": "Voltaje Display",
+  "short_name": "Voltaje Display",
+  "description": "Voltaje Ads Manager - Display para Tótems de Publicidad",
+  "start_url": "/display/1",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#75ff9e",
+  "categories": ["business", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Display Tótem 1",
+      "url": "/display/1"
+    },
+    {
+      "name": "Display Tótem 2",
+      "url": "/display/2"
+    }
+  ]
+}
